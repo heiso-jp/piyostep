@@ -11,9 +11,9 @@ durationMs}]. Missing characterID means piyo only for this named manifest.
 Parent-confirmed ranges (end exclusive): [0,20), [20,40), [40,60), [60,75),
 [75,101). Each frame is 100ms: 2.0/2.0/2.0/1.5/2.6 seconds.
 
-Activity mapping: eating = scene01 (small flap, mouth open like chewing);
-resting = scene04 (eyes closed); cheering = scene02, scene03, scene05 (random).
-Rice only decreases during eating, so the chewing clip is the base motion.
+Activity mapping (confirmed by the parent): eating = scene01, scene02, scene03 (random);
+resting = scene04 (eyes closed); cheering = scene05 (large hop).
+Rice only decreases during eating, so the eating clips are the base motion.
 Each clip loops 3 times before the next pick; an activity change cuts the loop short. Game finished displays `finished.png` and stops selection.
 macOS ImageIO verified all 101 frames, dimensions and delays in the built app bundle.
 
