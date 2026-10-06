@@ -151,59 +151,15 @@ final class SessionViewModelTests: XCTestCase {
         XCTAssertEqual(model.feedback?.judgement, .correct)
     }
 
-    func testTraceAnswerUsesRenderedGlyph() {
-        let environment = TestEnvironment.make()
-        let question = TestEnvironment.traceQuestion()
-        let model = makeModel(environment: environment, questions: [question])
-
-        model.traceStrokes = SessionViewModelTests.strokesAlongGlyph(of: question)
-        model.submitTrace()
-
-        XCTAssertEqual(model.feedback?.judgement, .correct, "お手本の上をなぞれば正解になる")
-    }
-
-    func testScribblingTheWholeCanvasIsNotCorrect() {
+    func testAnyTraceIsCorrect() {
         let environment = TestEnvironment.make()
         let model = makeModel(environment: environment, questions: [TestEnvironment.traceQuestion()])
 
-        // キャンバス全体を塗りつぶす。お手本は覆えるが、はみ出しだらけになる。
-        var strokes: [[TracePoint]] = []
-        for row in stride(from: 0.05, through: 0.95, by: 0.03) {
-            strokes.append([
-                TracePoint(x: 0.02, y: row),
-                TracePoint(x: 0.98, y: row)
-            ])
-        }
-        model.traceStrokes = strokes
+        // 形の一致は見ないので、お手本から外れた線でも正解にする。
+        model.traceStrokes = [[TracePoint(x: 0.05, y: 0.05), TracePoint(x: 0.1, y: 0.1)]]
         model.submitTrace()
 
-        XCTAssertNotEqual(
-            model.feedback?.judgement,
-            .correct,
-            "ぐりぐり塗りつぶしただけでは書けたことにしない"
-        )
-    }
-
-    /// お手本の形に沿った線をつくる。マスクの埋まっている行だけをなぞる。
-    private static func strokesAlongGlyph(of question: Question) -> [[TracePoint]] {
-        let text = AnswerGrader.correctAnswerDisplay(for: question)
-        let mask = GlyphMaskRenderer.mask(for: text)
-        guard mask.width > 0, mask.height > 0 else { return [] }
-
-        var points: [TracePoint] = []
-        for y in 0 ..< mask.height {
-            let filled = (0 ..< mask.width).filter { mask.isFilled(x: $0, y: y) }
-            guard let first = filled.first, let last = filled.last else { continue }
-            for x in first ... last where mask.isFilled(x: x, y: y) {
-                points.append(
-                    TracePoint(
-                        x: (Double(x) + 0.5) / Double(mask.width),
-                        y: (Double(y) + 0.5) / Double(mask.height)
-                    )
-                )
-            }
-        }
-        return points.isEmpty ? [] : [points]
+        XCTAssertEqual(model.feedback?.judgement, .correct, "書いて「できた！」を押せば正解")
     }
 
     func testEmptyTraceIsNotCorrect() {

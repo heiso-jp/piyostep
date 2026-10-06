@@ -49,7 +49,7 @@ public struct AlphabetReadQuestionGenerator: QuestionGenerating {
     }
 }
 
-/// アルファベットの「なぞり書き / 自由書き」
+/// アルファベットの「なぞり書き」
 public struct AlphabetWriteQuestionGenerator: QuestionGenerating {
     public let skill: Skill = .alphabetWrite
 
@@ -59,11 +59,10 @@ public struct AlphabetWriteQuestionGenerator: QuestionGenerating {
         let pool = AlphabetCatalog.cards(for: level)
         let card = random.pick(pool) ?? AlphabetCatalog.all[0]
         let isUppercase = level.raw <= 3 ? true : random.nextInt(upperBound: 2) == 0
-        let task = KanaWriteQuestionGenerator.task(for: level)
         let character = card.character(isUppercase: isUppercase)
 
         let prompt = Prompt(
-            displayText: task == .trace ? "なぞってみよう" : "かいてみよう",
+            displayText: "なぞってみよう",
             spokenText: "\(card.letterName) を なぞってみよう",
             hintText: "うすい もじの うえを なぞってね"
         )
@@ -71,7 +70,7 @@ public struct AlphabetWriteQuestionGenerator: QuestionGenerating {
             skill: skill,
             difficulty: level,
             prompt: prompt,
-            content: .alphabetCard(card: card, task: task, isUppercase: isUppercase),
+            content: .alphabetCard(card: card, task: .trace, isUppercase: isUppercase),
             answer: .trace(requiredCoverage: KanaWriteQuestionGenerator.requiredCoverage(for: level)),
             answerModes: [.trace],
             choices: [
@@ -82,9 +81,9 @@ public struct AlphabetWriteQuestionGenerator: QuestionGenerating {
                     isCorrect: true
                 )
             ],
-            // なぞりは習熟度に算入せず、自由書き（Lv4 以上）だけを「かき」として数える。
+            // なぞりは習熟度に算入しない。
             itemID: .alphabet(card.uppercase),
-            ability: task == .write ? .write : nil,
+            ability: nil,
             expectedStrokeCount: StrokeCounts.count(for: card.uppercase)
         )
     }

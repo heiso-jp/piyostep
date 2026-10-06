@@ -59,7 +59,7 @@ public struct KanaReadQuestionGenerator: QuestionGenerating {
     }
 }
 
-/// ひらがな・カタカナの「なぞり書き / 自由書き」
+/// ひらがな・カタカナの「なぞり書き」
 public struct KanaWriteQuestionGenerator: QuestionGenerating {
     public let skill: Skill
     private let subject: Subject
@@ -67,11 +67,6 @@ public struct KanaWriteQuestionGenerator: QuestionGenerating {
     public init(subject: Subject) {
         self.subject = subject == .katakana ? .katakana : .hiragana
         self.skill = subject == .katakana ? .katakanaWrite : .hiraganaWrite
-    }
-
-    /// Lv4 以上は お手本なしの自由書き。
-    public static func task(for level: DifficultyLevel) -> CharacterTask {
-        level.raw >= 4 ? .write : .trace
     }
 
     /// 難易度ごとに必要ななぞり達成率。
@@ -88,21 +83,18 @@ public struct KanaWriteQuestionGenerator: QuestionGenerating {
     public func generate(level: DifficultyLevel, random: RandomSource, allowVoice: Bool) -> Question {
         let pool = KanaCatalog.cards(for: level)
         let card = random.pick(pool) ?? KanaCatalog.teachable[0]
-        let task = KanaWriteQuestionGenerator.task(for: level)
         let character = card.character(for: subject)
 
         let prompt = Prompt(
-            displayText: task == .trace ? "なぞってみよう" : "かいてみよう",
-            spokenText: task == .trace
-                ? "「\(card.hiragana)」を ゆびで なぞってみよう"
-                : "「\(card.hiragana)」を かいてみよう",
+            displayText: "なぞってみよう",
+            spokenText: "「\(card.hiragana)」を ゆびで なぞってみよう",
             hintText: "うすい もじの うえを なぞってね"
         )
         return Question(
             skill: skill,
             difficulty: level,
             prompt: prompt,
-            content: .kanaCard(card: card, task: task),
+            content: .kanaCard(card: card, task: .trace),
             answer: .trace(requiredCoverage: KanaWriteQuestionGenerator.requiredCoverage(for: level)),
             answerModes: [.trace],
             choices: [
@@ -114,9 +106,8 @@ public struct KanaWriteQuestionGenerator: QuestionGenerating {
                 )
             ],
             // なぞり書きはお手本の上をなぞるだけなので、書きの習熟度には算入しない。
-            // お手本なしの自由書き（Lv4 以上）だけを「かき」として数える。
             itemID: .kana(character, subject: subject),
-            ability: task == .write ? .write : nil,
+            ability: nil,
             expectedStrokeCount: StrokeCounts.count(for: character)
         )
     }

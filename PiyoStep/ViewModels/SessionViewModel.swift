@@ -218,16 +218,9 @@ final class SessionViewModel {
     }
 
     func submitTrace() {
-        guard let question = currentQuestion else { return }
-        let text = AnswerGrader.correctAnswerDisplay(for: question)
-        let mask = GlyphMaskRenderer.mask(for: text)
-        let evaluation = TraceEvaluator.evaluate(
-            mask: mask,
-            strokes: traceStrokes,
-            brushRadius: 0.075,
-            expectedStrokeCount: question.expectedStrokeCount
-        )
-        submit(.trace(coverage: evaluation.score))
+        guard currentQuestion != nil else { return }
+        // 形の一致は見ない。線を書いて「できた！」を押せば正解にする。
+        submit(.trace(coverage: traceStrokes.isEmpty ? 0 : 1))
     }
 
     func skip() {
