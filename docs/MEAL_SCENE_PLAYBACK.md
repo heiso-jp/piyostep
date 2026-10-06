@@ -1,9 +1,7 @@
-# Meal scene playback — code-only integration handoff
+# Meal scene playback
 
-The new user video is the only intended source. Earlier animation pilots remain
-archived and are not imported by the app. The source ZIP could not be transferred
-into this executor; the parent owns media slicing, pixel QA, and final assembly.
-This commit contains playback/integration code and XCTest cases, not media assets.
+The user-provided animation is split into five lossless APNG scenes. The manifest,
+APNG files and finished still are included in Resources/MealScenes.
 
 ## Changes
 
@@ -17,8 +15,7 @@ This commit contains playback/integration code and XCTest cases, not media asset
 - `MealRaceView.swift`: replaces only the companion's visual column when a valid
   matching-character catalog exists. Does not change timers, progress, race plan,
   rewards, speech, buddy/profile settings or the child's plate.
-- `Resources/MealScenes/README.md`: exact media installation contract. No media
-  or placeholder production manifest is installed in this patch.
+- `Resources/MealScenes/`: five APNG scenes, the finished still and the manifest.
 
 The parent's compact manifest can be copied unchanged and named
 `piyo-meal-scenes.json`. `finished.png` is also the reduced-motion static image.
@@ -52,25 +49,18 @@ durations. The 5 source gestures are all eligible for eating/resting/cheering.
 
 ## Validation status
 
-Eight XCTest cases were added for the real PiyoCore implementation: 100 complete
-clips/no immediate repeat/all five reachable, pending-state boundaries, pause and
-reduced-motion clocks, terminal finish/stale update, empty/single pools, variable
-frame delays/malformed resources, the compact manifest adapter, deterministic
-seeds and duplicate-ID rejection.
+Verified on Mac with Xcode 27.0 (27A266a), Swift 6.4, iOS Simulator 27.0 SDK:
 
-`swift test` could not execute: `/bin/bash: swift: command not found` (exit 127).
-There is no Swift/Xcode toolchain in this selected environment. These are authored
-but UNRUN tests. Static diff checks are separate, not substitutes for compile or
-runtime tests. No claim of local media pixel inspection is made.
+- All 280 PiyoCore XCTest cases passed, including 8 scene playback tests.
+- Generic iOS Simulator build succeeded with signing disabled.
+- The actual app bundle manifest decoded through PiyoCore; all resources resolved.
+- macOS ImageIO decoded all 101 APNG frames at 640x360 and 100ms each (10.1s total).
+- APNGs and manifest remain byte-identical in the bundle; the Xcode-compressed
+  finished still has identical decoded pixels.
+- Scene duration now sums milliseconds before converting to seconds to avoid
+  repeated floating-point addition errors. Existing tests are unchanged.
 
-Before shipping, run on the user's separately authorized Mac:
-
-1. Install the parent's pixel-verified media and manifest as documented.
-2. Run `swift test` in Packages/PiyoCore; build PiyoStep in Xcode 16+.
-3. Run meal UI and confirm bundle resource lookup, actual APNG composition,
-   original aspect ratio, all scene durations and no immediate repeat.
-4. Toggle background/foreground, reduced motion, finish, close/reopen, and select
-   each non-piyo buddy. Confirm no catch-up, stale restart, crash, or wrong buddy.
-5. Remove/corrupt a test resource in a test build to exercise graceful fallback.
-
-No user Mac was opened. No push, merge, publication or external paid API use.
+No GUI was opened. iOS on-screen playback, actual background/foreground and
+Reduce Motion transitions, and non-piyo fallback on screen remain unverified.
+An attempted physical-iPad build was blocked by disabled Developer Mode and
+an unset Development Team; no app was installed and device data was unchanged.
