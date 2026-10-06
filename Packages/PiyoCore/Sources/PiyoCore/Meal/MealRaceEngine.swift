@@ -210,6 +210,11 @@ public struct MealRaceEngine {
         return targetDuration * clamped
     }
 
+    /// 寝る（ひとやすみ）1 回の長さ。
+    public static let restDurationRange: ClosedRange<TimeInterval> = 50 ... 70
+    /// 応援 1 回の長さ。
+    public static let cheerDurationRange: ClosedRange<TimeInterval> = 5 ... 16
+
     /// 食べる・休む・応援するを織り交ぜたペース計画をつくる。
     public static func makePlan(
         targetDuration: TimeInterval,
@@ -230,12 +235,27 @@ public struct MealRaceEngine {
         var breakCount = Int((Double(eatingSegmentCount - 1) * (0.4 + 0.6 * personality.restTendency)).rounded())
         breakCount = max(1, min(eatingSegmentCount - 1, breakCount))
 
+        // 休憩ごとに「寝る（ひとやすみ）」か「応援」かを先に決める。
+        // 寝るときは 1 分くらいしっかり寝る。短いと、目を閉じたと思ったらすぐ起きて落ち着かない。
+        var breakIsCheer: [Bool] = []
         var breakDurations: [TimeInterval] = []
         for _ in 0 ..< breakCount {
-            breakDurations.append(random.nextDouble(in: 5 ... 16))
+            let isCheer = random.nextDouble() < personality.cheerTendency
+            breakIsCheer.append(isCheer)
+            breakDurations.append(isCheer
+                ? random.nextDouble(in: cheerDurationRange)
+                : random.nextDouble(in: restDurationRange))
         }
-        let totalBreak = min(breakDurations.reduce(0, +), finishTime * 0.35)
-        // 合計が上限を超える場合は比率を保って縮める。
+        // 休憩の合計は食事時間の 35% まで。超えるなら、寝る回を後ろから短い応援に替えて収める。
+        let breakLimit = finishTime * 0.35
+        var restIndex = breakIsCheer.lastIndex(of: false)
+        while breakDurations.reduce(0, +) > breakLimit, let index = restIndex {
+            breakIsCheer[index] = true
+            breakDurations[index] = random.nextDouble(in: cheerDurationRange)
+            restIndex = breakIsCheer[..<index].lastIndex(of: false)
+        }
+        let totalBreak = min(breakDurations.reduce(0, +), breakLimit)
+        // それでも超える場合は比率を保って縮める。
         let breakScale = breakDurations.reduce(0, +) > 0 ? totalBreak / breakDurations.reduce(0, +) : 0
         breakDurations = breakDurations.map { $0 * breakScale }
 
@@ -265,7 +285,7 @@ public struct MealRaceEngine {
             )
             if breakIndex < breakDurations.count, index < eatingSegmentCount - 1 {
                 // 応援しやすい性格ほど、休憩が「おうえん」になる。
-                let isCheer = random.nextDouble() < personality.cheerTendency
+                let isCheer = breakIsCheer[breakIndex]
                 segments.append(
                     PaceSegment(
                         activity: isCheer ? .cheering : .resting,

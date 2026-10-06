@@ -48,6 +48,21 @@ final class MealRaceEngineTests: XCTestCase {
         XCTAssertTrue(pauses.allSatisfy { $0.progressDelta == 0 })
     }
 
+    func testRestsLastAboutAMinute() {
+        var sawRest = false
+        for seed in UInt64(1) ... 30 {
+            let plan = MealRaceEngine.makePlan(targetDuration: 600, personality: .steady, seed: seed)
+            for segment in plan.segments where segment.activity == .resting {
+                sawRest = true
+                XCTAssertGreaterThanOrEqual(segment.duration, 50, "寝たら 1 分くらい寝る")
+                XCTAssertLessThanOrEqual(segment.duration, 70)
+            }
+            let breaks = plan.segments.filter { $0.activity != .eating }.reduce(0) { $0 + $1.duration }
+            XCTAssertLessThanOrEqual(breaks, plan.finishTime * 0.35 + 0.001)
+        }
+        XCTAssertTrue(sawRest)
+    }
+
     func testProgressIsMonotonicAndBounded() {
         let raceEngine = engine(seed: 11)
         var previous = -1.0
