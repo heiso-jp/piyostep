@@ -25,32 +25,6 @@ final class MealRaceViewModel {
     private var announcedRemaining: Set<Int> = []
     /// 区切りの声かけを、少しのあいだ吹き出しに残しておく期限。
     private var messagePinnedUntil: Date?
-    /// 「ごちそうさま」の聞き取りの状態。何が起きているか画面で分かるようにする。
-    enum VoiceStatus: Equatable {
-        /// 聞き取り中
-        case listening
-        /// マイク・音声認識が許可されていない
-        case notAllowed
-        /// 設定で「こえで答える」がオフ、または端末が対応していない
-        case disabled
-        /// 準備中（許可を確認しているところ）
-        case preparing
-    }
-
-    private(set) var voiceStatus: VoiceStatus = .disabled
-
-    var isListeningForFinish: Bool { voiceStatus == .listening }
-
-    /// 画面に出す一行。状態が分かるようにする。
-    var voiceHint: String? {
-        switch voiceStatus {
-        case .listening: return "「ごちそうさま」って いってもいいよ"
-        case .preparing: return "マイクの じゅんびちゅう…"
-        case .notAllowed: return "マイクを ゆるすと こえで おわれます"
-        case .disabled: return nil
-        }
-    }
-
     private(set) var stage: Stage = .ready
     private(set) var elapsed: TimeInterval = 0
     private(set) var snapshot: MealRaceSnapshot
@@ -156,8 +130,6 @@ final class MealRaceViewModel {
         lastSpokenLine = characterMessage
         environment.play(.mealStart)
         updateSnapshot()
-        startListeningForFinish()
-
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: tickInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
@@ -198,117 +170,7 @@ final class MealRaceViewModel {
     private func speakIfChanged(_ line: String) {
         guard stage == .racing, line != lastSpokenLine else { return }
         lastSpokenLine = line
-        speakWhilePausingRecognition(line)
-    }
-
-    /// 読み上げの前後で聞き取りを止める。
-    /// そうしないと、キャラクターの「ごちそうさま」を自分で拾って終わってしまう。
-    private func speakWhilePausingRecognition(_ line: String) {
-        let wasListening = isListeningForFinish
-        if wasListening { stopListeningForFinish() }
         environment.speak(line)
-        guard wasListening else { return }
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 2_500_000_000)
-            guard let self, self.stage == .racing else { return }
-            self.startListeningForFinish()
-        }
-    }
-
-    // MARK: - 「ごちそうさま」の聞き取り
-
-    /// 手が汚れていてもボタンを押さずに終われるよう、競争中は声を聞いておく。
-    /// 設定で音声回答を切っているときや、マイクが未許可のときは何もしない。
-    private func startListeningForFinish() {
-        guard stage == .racing, voiceStatus != .listening else { return }
-        guard environment.canUseVoice(for: .japanese) else {
-            voiceStatus = .disabled
-            return
-        }
-
-        let recognizer = environment.speechRecognizer
-        switch recognizer.authorizationStatus {
-        case .authorized:
-            beginListeningForFinish()
-        case .notDetermined:
-            // まだ一度も聞いていないなら、ここで許可を求める。
-            // 食事の場には大人がいるので、確認に答えてもらいやすい。
-            voiceStatus = .preparing
-            recognizer.requestAuthorization { [weak self] status in
-                Task { @MainActor in
-                    guard let self, self.stage == .racing else { return }
-                    if status == .authorized {
-                        self.beginListeningForFinish()
-                    } else {
-                        self.voiceStatus = .notAllowed
-                    }
-                }
-            }
-        case .denied, .restricted:
-            voiceStatus = .notAllowed
-        case .unavailable:
-            voiceStatus = .disabled
-        }
-    }
-
-    private func beginListeningForFinish() {
-        guard stage == .racing, voiceStatus != .listening else { return }
-        let recognizer = environment.speechRecognizer
-        voiceStatus = .listening
-        recognizer.startListening(
-            locale: .japanese,
-            // 食事中はずっと待ち受ける。無音で切れると言った瞬間を逃す。
-            mode: .continuous,
-            onResult: { [weak self] result in
-                Task { @MainActor in
-                    self?.handleHeard(transcript: result.transcript, isFinal: result.isFinal)
-                }
-            },
-            onFailure: { [weak self] failure in
-                Task { @MainActor in
-                    guard let self else { return }
-                    switch failure {
-                    case .notAuthorized:
-                        self.voiceStatus = .notAllowed
-                        self.stopListeningForFinish(resetStatus: false)
-                    case .unavailable:
-                        self.voiceStatus = .disabled
-                        self.stopListeningForFinish(resetStatus: false)
-                    case .noSpeechDetected, .audioEngineFailed, .cancelled, .other:
-                        // 一区切りついただけなので掛け直す。
-                        self.restartListeningAfterPause()
-                    }
-                }
-            }
-        )
-    }
-
-    private func handleHeard(transcript: String, isFinal: Bool) {
-        guard stage == .racing else { return }
-        if MealVoiceCommand.isFinish(transcript) {
-            finish()
-            return
-        }
-        // 認識は 1 回ごとに区切られるので、終わったら掛け直す。
-        if isFinal { restartListeningAfterPause() }
-    }
-
-    private func restartListeningAfterPause() {
-        stopListeningForFinish(resetStatus: false)
-        guard stage == .racing else { return }
-        // 掛け直している間も「使えない」表示にしない。
-        voiceStatus = .preparing
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            guard let self, self.stage == .racing else { return }
-            self.startListeningForFinish()
-        }
-    }
-
-    private func stopListeningForFinish(resetStatus: Bool = true) {
-        guard voiceStatus == .listening else { return }
-        if resetStatus { voiceStatus = .disabled }
-        environment.speechRecognizer.stopListening()
     }
 
     /// 残り時間の区切りで声をかける。半分すぎたときと、のこり1分。
@@ -335,7 +197,6 @@ final class MealRaceViewModel {
         guard stage != .finished, stage != .ready else { return }
         timer?.invalidate()
         timer = nil
-        stopListeningForFinish()
 
         let outcome = engine.finish(at: elapsed, childName: childName)
         result = outcome
@@ -359,7 +220,6 @@ final class MealRaceViewModel {
     func cancel() {
         timer?.invalidate()
         timer = nil
-        stopListeningForFinish()
         environment.adPresenter.isLearningSessionActive = false
         environment.stopSpeaking()
     }

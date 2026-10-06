@@ -291,24 +291,7 @@ struct MealRaceView: View {
         }
     }
 
-    /// 声でも終われるので、ボタンの上に聞き取りの様子を出す。
     private var finishButton: some View {
-        VStack(alignment: .trailing, spacing: 8) {
-            if let hint = model.voiceHint {
-                Label(hint, systemImage: model.isListeningForFinish ? "mic.fill" : "mic.slash.fill")
-                    .piyoFont(.caption)
-                    .foregroundStyle(PiyoTheme.textSoft)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(Capsule().fill(PiyoTheme.surface.opacity(0.92)))
-            }
-            finishBigButton
-        }
-    }
-
-    private var finishBigButton: some View {
         BigButton(color: PiyoTheme.success, minHeight: CGFloat(layout.sized(80)), action: { model.finish() }) {
             HStack(spacing: 10) {
                 Image(systemName: "checkmark.circle.fill")
