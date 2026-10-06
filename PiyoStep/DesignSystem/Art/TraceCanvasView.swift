@@ -84,6 +84,8 @@ struct TraceCanvasView: View {
     var canvasSize: CGFloat = 280
     var strokeColor: Color = PiyoTheme.primary
     @Binding var strokes: [[TracePoint]]
+    /// 指で触り始めた・離した。
+    var onTouchingChange: ((Bool) -> Void)? = nil
 
     @State private var currentStroke: [TracePoint] = []
 
@@ -115,7 +117,7 @@ struct TraceCanvasView: View {
         }
         .frame(width: canvasSize, height: canvasSize)
         .contentShape(Rectangle())
-        .gesture(drawGesture)
+        .highPriorityGesture(drawGesture)
         .accessibilityElement(children: .ignore)
         .accessibilityIdentifier(A11yID.sessionTraceCanvas)
         .accessibilityLabel("「\(character)」を なぞる ところ")
@@ -162,6 +164,7 @@ struct TraceCanvasView: View {
                     x: min(max(value.location.x / canvasSize, 0), 1),
                     y: min(max(value.location.y / canvasSize, 0), 1)
                 )
+                if currentStroke.isEmpty { onTouchingChange?(true) }
                 currentStroke.append(normalized)
             }
             .onEnded { _ in
@@ -169,6 +172,7 @@ struct TraceCanvasView: View {
                     strokes.append(currentStroke)
                     currentStroke = []
                 }
+                onTouchingChange?(false)
             }
     }
 }

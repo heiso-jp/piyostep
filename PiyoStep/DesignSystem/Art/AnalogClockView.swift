@@ -9,14 +9,30 @@ struct AnalogClockView: View {
     var showsNumbers: Bool = true
     var size: CGFloat = 280
     var onChange: ((ClockTime) -> Void)? = nil
+    /// 針が 1 目盛り動いたとき（音・振動を出す）。
+    var onStep: (() -> Void)? = nil
+    /// 指で触り始めた・離した。
+    var onTouchingChange: ((Bool) -> Void)? = nil
 
     @State private var hourAngle: Double = 0
     @State private var minuteAngle: Double = 0
     @State private var draggingHand: Hand?
+    /// 最後に音・振動を出した時刻。同じ目盛りで何度も鳴らさない。
+    @State private var lastSteppedTime: ClockTime?
 
     enum Hand {
         case hour
         case minute
+    }
+
+    /// 掴んでいる針は、目盛りに丸めずに指の位置へそのまま付いていく。
+    /// 丸めた位置に描くと 5 分（30 度）ずつ飛び、指から離れて「動かない」ように見える。
+    private var hourHandAngle: Double {
+        draggingHand == .hour ? hourAngle : displayedTime.hourHandAngleDegrees
+    }
+
+    private var minuteHandAngle: Double {
+        draggingHand == .minute ? minuteAngle : displayedTime.minuteHandAngleDegrees
     }
 
     /// 現在表示している時刻。
@@ -37,14 +53,14 @@ struct AnalogClockView: View {
             hand(
                 length: size * 0.26,
                 width: size * 0.045,
-                angle: displayedTime.hourHandAngleDegrees,
+                angle: hourHandAngle,
                 color: PiyoTheme.primaryDeep,
                 identifier: A11yID.sessionClockHourHand
             )
             hand(
                 length: size * 0.37,
                 width: size * 0.032,
-                angle: displayedTime.minuteHandAngleDegrees,
+                angle: minuteHandAngle,
                 color: PiyoTheme.calm,
                 identifier: A11yID.sessionClockMinuteHand
             )
@@ -54,7 +70,7 @@ struct AnalogClockView: View {
         }
         .frame(width: size, height: size)
         .contentShape(Circle())
-        .gesture(dragGesture, including: isInteractive ? .all : .subviews)
+        .highPriorityGesture(dragGesture, including: isInteractive ? .all : .subviews)
         .onAppear(perform: syncAngles)
         .onChange(of: time) { _, _ in syncAngles() }
         .accessibilityElement(children: .ignore)
@@ -132,6 +148,9 @@ struct AnalogClockView: View {
 
                 if draggingHand == nil {
                     draggingHand = closestHand(to: angle, radius: radius)
+                    lastSteppedTime = displayedTime
+                    onTouchingChange?(true)
+                    onStep?()
                 }
                 switch draggingHand {
                 case .hour:
@@ -141,14 +160,24 @@ struct AnalogClockView: View {
                 case .none:
                     break
                 }
-                onChange?(displayedTime)
+                let current = displayedTime
+                if current != lastSteppedTime {
+                    // 目盛りをまたいだときだけ鳴らす。
+                    lastSteppedTime = current
+                    onStep?()
+                }
+                onChange?(current)
             }
             .onEnded { _ in
-                draggingHand = nil
-                // 指を離したら、丸められた位置に針を揃える。
+                // 指を離したら、丸められた位置に針をすっと揃える。
                 let snapped = displayedTime
-                hourAngle = snapped.hourHandAngleDegrees
-                minuteAngle = snapped.minuteHandAngleDegrees
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                    draggingHand = nil
+                    hourAngle = snapped.hourHandAngleDegrees
+                    minuteAngle = snapped.minuteHandAngleDegrees
+                }
+                lastSteppedTime = nil
+                onTouchingChange?(false)
                 onChange?(snapped)
             }
     }
