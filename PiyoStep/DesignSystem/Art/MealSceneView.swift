@@ -134,7 +134,7 @@ private final class MealSceneSurface: UIView {
             imageView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
         let proxy = MealSceneDisplayLinkTarget(owner: self)
-        let link = CADisplayLink(target: proxy, selector: #selector(MealSceneDisplayLinkTarget.tick(_:)))
+        let link = CADisplayLink(target: proxy, selector: #selector(proxy.tick(_:)))
         link.isPaused = true
         link.add(to: .main, forMode: .common)
         displayLink = link
