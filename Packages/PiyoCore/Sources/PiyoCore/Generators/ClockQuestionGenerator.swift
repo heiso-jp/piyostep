@@ -129,7 +129,9 @@ public struct ClockReadQuestionGenerator: QuestionGenerating {
             AnswerChoice(
                 label: time.displayJapanese,
                 spokenText: time.spokenJapanese,
-                display: .clock(time),
+                // 選択肢を時計の絵にすると、絵合わせで解けてしまい時刻を読む練習にならない。
+                // 文字で出して、出題の時計を読んでから選ばせる。
+                display: .text(time.displayJapanese),
                 isCorrect: time == correct
             )
         }

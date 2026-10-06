@@ -1,15 +1,37 @@
 import Foundation
 
 /// 教科。ホーム画面のカテゴリと 1 対 1 で対応する。
+///
+/// case の並びがそのまま学習の優先順位になる。日本語を母語とする子ども向けなので、
+/// ひらがな・すうじ を土台に置き、英語系はいちばん後ろに置く。
+/// 画面の並び順はここを直せば全部そろう（rawValue は変えないので保存済みデータには影響しない）。
 public enum Subject: String, CaseIterable, Codable, Sendable, Identifiable {
-    case clock
     case hiragana
-    case katakana
     case number
+    case clock
+    case katakana
     case alphabet
     case englishWord
 
     public var id: String { rawValue }
+
+    /// 学習の優先度。小さいほど先に見せる。
+    public var learningPriority: Int {
+        Subject.allCases.firstIndex(of: self) ?? Subject.allCases.count
+    }
+
+    /// 優先度順に並べた教科。ホーム画面や保護者設定の並びに使う。
+    public static var orderedByPriority: [Subject] { allCases }
+
+    /// 「きょうのチャレンジ」での出題されやすさの係数。
+    /// 母語（ひらがな）と数の土台を優先し、英語系は出過ぎないように抑える。
+    public var challengeWeightMultiplier: Double {
+        switch self {
+        case .hiragana, .number: return 1.0
+        case .clock, .katakana: return 0.8
+        case .alphabet, .englishWord: return 0.45
+        }
+    }
 
     /// 子ども向けのひらがな表記。
     public var childTitle: String {

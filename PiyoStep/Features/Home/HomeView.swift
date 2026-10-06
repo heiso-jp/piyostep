@@ -124,6 +124,7 @@ struct HomeView: View {
         case .parentGate:
             ParentGateView(
                 onPass: {
+                    environment.markParentGatePassed()
                     sheetRoute = nil
                     presentAfterDismiss { openParentArea() }
                 },
@@ -313,7 +314,7 @@ struct HomeView: View {
                 smallMenuButton(systemImage: "sparkles", title: "チャレンジ", action: startDailyChallenge)
                     .accessibilityIdentifier(A11yID.homeDailyChallenge)
 
-                ForEach(Array(environment.settings.enabledSubjects).sorted(by: { $0.rawValue < $1.rawValue })) { subject in
+                ForEach(Subject.orderedByPriority.filter(environment.settings.enabledSubjects.contains)) { subject in
                     smallMenuButton(systemImage: icon(for: subject), title: subject.childTitle) {
                         environment.haptics.tap()
                         environment.speak(subject.childTitle)

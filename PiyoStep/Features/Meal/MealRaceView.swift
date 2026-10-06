@@ -117,7 +117,7 @@ struct MealSetupView: View {
                 HStack {
                     Spacer(minLength: 0)
                     startPanel
-                        .frame(maxWidth: CGFloat(layout.sized(340)))
+                        .frame(maxWidth: CGFloat(layout.sized(360)))
                 }
             }
             .padding(CGFloat(layout.sized(20)))
@@ -129,6 +129,29 @@ struct MealSetupView: View {
         }
     }
 
+    private func minuteButton(_ minutes: Int) -> some View {
+        let isSelected = model.targetMinutes == minutes
+        return Button {
+            model.select(minutes: minutes)
+        } label: {
+            VStack(spacing: 0) {
+                Text("\(minutes)")
+                    .piyoFont(size: 22, weight: .heavy)
+                Text("ふん")
+                    .piyoFont(size: 11, weight: .semibold)
+            }
+            .foregroundStyle(isSelected ? .white : PiyoTheme.textSoft)
+            .frame(maxWidth: .infinity, minHeight: CGFloat(layout.sized(56)))
+            .background(
+                RoundedRectangle(cornerRadius: PiyoTheme.smallCornerRadius, style: .continuous)
+                    .fill(isSelected ? PiyoTheme.success : PiyoTheme.surfaceSunken)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("\(A11yID.mealMinutes)\(minutes)")
+        .accessibilityLabel("\(minutes)ふん")
+    }
+
     private var startPanel: some View {
         VStack(spacing: CGFloat(layout.sized(12))) {
             Text(model.character.raceIntroLine)
@@ -138,14 +161,19 @@ struct MealSetupView: View {
                 .minimumScaleFactor(0.6)
                 .lineLimit(3)
 
-            HStack(spacing: 16) {
-                Label("\(model.targetMinutes)ふん", systemImage: "timer")
-                Label(model.character.favoriteFood, systemImage: "fork.knife")
+            // 食べる時間はその日の量で変わるので、始める前にここで選べるようにする。
+            Text("なんぷんで たべる？")
+                .piyoFont(.caption)
+                .foregroundStyle(PiyoTheme.textSoft)
+
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4),
+                spacing: 8
+            ) {
+                ForEach(MealRaceViewModel.selectableMinutes, id: \.self) { minutes in
+                    minuteButton(minutes)
+                }
             }
-            .piyoFont(.caption)
-            .foregroundStyle(PiyoTheme.textSoft)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
 
             BigButton(color: PiyoTheme.success, minHeight: CGFloat(layout.sized(84)), action: { model.begin() }) {
                 HStack(spacing: 12) {
@@ -204,18 +232,18 @@ struct MealRaceView: View {
                 fallbackMood: model.characterMood
             )
 
-            // ごはん。キャラクターの左手前、敷物の上に置く（右下は「たべおわった！」が来る）。
+            // ごはん（茶碗）。キャラクターの左手前、敷物の上に置く（右下は「たべおわった！」が来る）。
             // 絵の下端は画面の外に切れることがあるので、お皿が収まる高さまで持ち上げる。
             GeometryReader { proxy in
                 let plateWidth = min(MealStageGeometry.sceneWidth(in: proxy.size) * 0.17,
                                      proxy.size.height * 0.4)
                 let anchor = MealStageGeometry.point(x: 0.33, y: 0.84, in: proxy.size)
-                PlateView(
+                RiceBowlView(
                     fullness: model.characterPlateFullness,
                     size: plateWidth,
                     foodName: model.character.favoriteFood
                 )
-                .position(x: anchor.x, y: min(anchor.y, proxy.size.height - plateWidth * 0.35 - 16))
+                .position(x: anchor.x, y: min(anchor.y, proxy.size.height - plateWidth * 0.39 - 16))
             }
             .ignoresSafeArea()
 
@@ -263,7 +291,24 @@ struct MealRaceView: View {
         }
     }
 
+    /// 声でも終われるので、ボタンの上に聞き取りの様子を出す。
     private var finishButton: some View {
+        VStack(alignment: .trailing, spacing: 8) {
+            if let hint = model.voiceHint {
+                Label(hint, systemImage: model.isListeningForFinish ? "mic.fill" : "mic.slash.fill")
+                    .piyoFont(.caption)
+                    .foregroundStyle(PiyoTheme.textSoft)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(PiyoTheme.surface.opacity(0.92)))
+            }
+            finishBigButton
+        }
+    }
+
+    private var finishBigButton: some View {
         BigButton(color: PiyoTheme.success, minHeight: CGFloat(layout.sized(80)), action: { model.finish() }) {
             HStack(spacing: 10) {
                 Image(systemName: "checkmark.circle.fill")
@@ -287,7 +332,7 @@ struct MealResultView: View {
     var onDone: () -> Void
 
     var body: some View {
-        VStack(spacing: 24) {
+        AdaptiveColumn(spacing: 24, maxWidth: 560) {
             Spacer(minLength: 0)
 
             if MealSceneView<EmptyView>.hasScenes(for: model.character) {

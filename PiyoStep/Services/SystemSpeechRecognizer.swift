@@ -9,6 +9,9 @@ final class SystemSpeechRecognizer: NSObject, SpeechRecognizing {
 
     /// 発話が途切れてから結果を確定するまでの待ち時間
     private let silenceTimeout: TimeInterval = 1.6
+    /// 聞き続けるときの 1 区切りの長さ。OS 側の上限があるので長すぎない値にする。
+    private let continuousDuration: TimeInterval = 50.0
+    private var mode: SpeechListeningMode = .singleAnswer
     /// 1 回の聞き取りの上限
     private let maximumDuration: TimeInterval = 8.0
 
@@ -72,10 +75,12 @@ final class SystemSpeechRecognizer: NSObject, SpeechRecognizing {
 
     func startListening(
         locale: RecognitionLocale,
+        mode: SpeechListeningMode,
         onResult: @escaping (SpeechRecognitionResult) -> Void,
         onFailure: @escaping (SpeechRecognitionFailure) -> Void
     ) {
         stopListening()
+        self.mode = mode
 
         resultHandler = onResult
         failureHandler = onFailure
@@ -197,6 +202,9 @@ final class SystemSpeechRecognizer: NSObject, SpeechRecognizing {
     }
 
     private func scheduleSilenceTimer() {
+        // 聞き続けるモードでは無音で打ち切らない。
+        // 食事中は静かな時間のほうが長く、打ち切ると言った瞬間を取りこぼす。
+        guard mode == .singleAnswer else { return }
         silenceTimer?.invalidate()
         silenceTimer = Timer.scheduledTimer(withTimeInterval: silenceTimeout, repeats: false) { [weak self] _ in
             self?.finishWithLatestTranscript()
@@ -205,7 +213,8 @@ final class SystemSpeechRecognizer: NSObject, SpeechRecognizing {
 
     private func scheduleMaximumTimer() {
         maximumTimer?.invalidate()
-        maximumTimer = Timer.scheduledTimer(withTimeInterval: maximumDuration, repeats: false) { [weak self] _ in
+        let duration = mode == .continuous ? continuousDuration : maximumDuration
+        maximumTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
             self?.finishWithLatestTranscript()
         }
     }

@@ -22,6 +22,7 @@ final class ScriptedSpeechRecognizer: SpeechRecognizing {
 
     func startListening(
         locale: RecognitionLocale,
+        mode: SpeechListeningMode,
         onResult: @escaping (SpeechRecognitionResult) -> Void,
         onFailure: @escaping (SpeechRecognitionFailure) -> Void
     ) {

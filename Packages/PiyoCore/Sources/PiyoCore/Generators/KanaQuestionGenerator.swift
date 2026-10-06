@@ -26,7 +26,9 @@ public struct KanaReadQuestionGenerator: QuestionGenerating {
 
         let prompt = Prompt(
             displayText: "どれかな？",
-            spokenText: "「\(card.hiragana)」は どれ かな？",
+            // 文字を言い切ってから間を置き、そのあとに「は、どれかな？」と続ける。
+            // 「は」+ 助詞「は」が「はは」とつながって聞き取れなくなるのを避ける。
+            spokenText: "\(card.hiragana)。 は、どれ かな？",
             hintText: "「\(card.hiraganaWord)」の さいしょの もじ だよ"
         )
         return Question(
@@ -39,8 +41,12 @@ public struct KanaReadQuestionGenerator: QuestionGenerating {
                 accepted: [card.hiragana, card.katakana, card.romaji, card.word(for: subject)],
                 locale: .japanese
             ),
-            answerModes: answerModes([.choice, .voice], allowVoice: allowVoice),
-            choices: choices
+            // 聞こえた音と同じ文字を選ぶ問題なので、声で答えても読み上げの真似になるだけ。
+            // 選ぶ操作だけにする。
+            answerModes: [.choice],
+            choices: choices,
+            itemID: .kana(card.character(for: subject), subject: subject),
+            ability: .read
         )
     }
 
@@ -106,7 +112,12 @@ public struct KanaWriteQuestionGenerator: QuestionGenerating {
                     display: .text(character),
                     isCorrect: true
                 )
-            ]
+            ],
+            // なぞり書きはお手本の上をなぞるだけなので、書きの習熟度には算入しない。
+            // お手本なしの自由書き（Lv4 以上）だけを「かき」として数える。
+            itemID: .kana(character, subject: subject),
+            ability: task == .write ? .write : nil,
+            expectedStrokeCount: StrokeCounts.count(for: character)
         )
     }
 }
@@ -152,7 +163,9 @@ public struct KanaWordQuestionGenerator: QuestionGenerating {
                 locale: .japanese
             ),
             answerModes: answerModes([.choice, .voice], allowVoice: allowVoice),
-            choices: choices
+            choices: choices,
+            itemID: .kana(card.character(for: subject), subject: subject),
+            ability: .read
         )
     }
 }

@@ -42,7 +42,9 @@ public struct AlphabetReadQuestionGenerator: QuestionGenerating {
                 locale: .englishUS
             ),
             answerModes: answerModes([.choice, .voice], allowVoice: allowVoice),
-            choices: choices
+            choices: choices,
+            itemID: .alphabet(card.uppercase),
+            ability: .read
         )
     }
 }
@@ -79,7 +81,11 @@ public struct AlphabetWriteQuestionGenerator: QuestionGenerating {
                     display: .text(character),
                     isCorrect: true
                 )
-            ]
+            ],
+            // なぞりは習熟度に算入せず、自由書き（Lv4 以上）だけを「かき」として数える。
+            itemID: .alphabet(card.uppercase),
+            ability: task == .write ? .write : nil,
+            expectedStrokeCount: StrokeCounts.count(for: card.uppercase)
         )
     }
 }

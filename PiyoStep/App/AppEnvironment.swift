@@ -40,6 +40,9 @@ final class AppEnvironment {
     var pendingUnlocks: [UnlockableItem] = []
     /// 保護者画面に入るときの広告を表示中か
     var isShowingParentAd = false
+    /// この起動で、すでに大人がペアレンタルゲートを通ったか。
+    /// 遊ぶたびに計算を解かせると手間なので、起動につき 1 回だけ確認する。
+    private(set) var hasPassedParentGateThisLaunch = false
 
     let launchArguments: LaunchArguments
 
@@ -112,6 +115,11 @@ final class AppEnvironment {
             updated.adsRemoved = true
             update(settings: updated)
         }
+    }
+
+    /// ペアレンタルゲートを通ったことを覚えておく。
+    func markParentGatePassed() {
+        hasPassedParentGateThisLaunch = true
     }
 
     // MARK: - プロフィール・設定

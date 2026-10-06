@@ -185,7 +185,9 @@ public final class LearningSessionEngine {
             answerMode: LearningSessionEngine.answerMode(for: input, question: question),
             attemptIndex: currentAttemptCount,
             duration: duration,
-            createdAt: now
+            createdAt: now,
+            itemID: question.itemID,
+            ability: question.ability
         )
         attemptRecords.append(record)
 

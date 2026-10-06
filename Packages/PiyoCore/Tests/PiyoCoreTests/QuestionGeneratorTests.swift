@@ -66,10 +66,10 @@ final class ClockQuestionGeneratorTests: XCTestCase {
         let question = generator.generate(level: .level4, random: random, allowVoice: true)
         guard case let .time(expected, _) = question.answer,
               let correct = question.choices.first(where: \.isCorrect),
-              case let .clock(shown) = correct.display else {
+              case let .text(shown) = correct.display else {
             return XCTFail("時刻問題の構造が想定と違う")
         }
-        XCTAssertEqual(shown, expected)
+        XCTAssertEqual(shown, expected.displayJapanese)
     }
 
     func testVoiceModeCanBeDisabled() {

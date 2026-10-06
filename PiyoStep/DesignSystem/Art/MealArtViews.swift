@@ -73,79 +73,119 @@ struct PlateView: View {
     }
 }
 
-/// ゴールまでのトラック。子どもとキャラクターの位置を並べて見せる。
-struct RaceTrackView: View {
-    var childProgress: Double
-    var characterProgress: Double
+/// キャラクターがどこまで食べ進んだかだけを見せる帯。
+///
+/// 子どもの進み具合は自分のお皿で分かるので、帯はキャラクターの分だけにして
+/// 「追いかける相手」がはっきり見えるようにする。
+struct CharacterProgressBar: View {
+    var progress: Double
     var character: CharacterDefinition
-    var childName: String
+
+    private var clamped: Double { min(max(progress, 0), 1) }
 
     var body: some View {
-        VStack(spacing: 14) {
-            lane(
-                progress: childProgress,
-                color: PiyoTheme.primary,
-                label: childName.isEmpty ? "きみ" : childName,
-                identifier: A11yID.mealChildProgress
-            ) {
-                AnyView(
-                    ZStack {
-                        Circle().fill(PiyoTheme.primary)
-                        Image(systemName: "figure.child")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
-                    .frame(width: 44, height: 44)
-                )
-            }
-
-            lane(
-                progress: characterProgress,
-                color: PiyoTheme.color(hex: character.accentColorHex),
-                label: character.name,
-                identifier: A11yID.mealCharacterProgress
-            ) {
-                AnyView(
-                    CharacterArtView(character: character, mood: .eating, size: 48, isAnimated: false)
-                )
-            }
-        }
-    }
-
-    private func lane(
-        progress: Double,
-        color: Color,
-        label: String,
-        identifier: String,
-        @ViewBuilder marker: @escaping () -> AnyView
-    ) -> some View {
-        let clamped = min(max(progress, 0), 1)
-        return VStack(alignment: .leading, spacing: 4) {
-            Text(label)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(character.name)
                 .piyoFont(.caption)
                 .foregroundStyle(PiyoTheme.textSoft)
             GeometryReader { proxy in
-                let width = proxy.size.width
+                let width = max(0, proxy.size.width)
                 ZStack(alignment: .leading) {
                     Capsule()
                         .fill(PiyoTheme.surfaceSunken)
                     Capsule()
-                        .fill(color.opacity(0.35))
-                        .frame(width: max(0, width * clamped))
-                    marker()
-                        .offset(x: max(0, min(width - 44, width * clamped - 22)))
+                        .fill(PiyoTheme.color(hex: character.accentColorHex).opacity(0.35))
+                        .frame(width: width * clamped)
+                    CharacterArtView(character: character, mood: .eating, size: 52, isAnimated: false)
+                        .offset(x: max(0, min(width - 52, width * clamped - 26)))
                     Image(systemName: "flag.checkered")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(PiyoTheme.textSoft)
-                        .offset(x: width - 22)
+                        .offset(x: max(0, width - 24))
                 }
                 .animation(.easeInOut(duration: 0.4), value: clamped)
             }
-            .frame(height: 48)
+            .frame(height: 56)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityIdentifier(identifier)
-        .accessibilityLabel("\(label)は \(Int(clamped * 100))パーセント")
+        .accessibilityIdentifier(A11yID.mealCharacterProgress)
+        .accessibilityLabel("\(character.name)は \(Int(clamped * 100))パーセント")
+    }
+}
+
+/// 茶碗とごはん。経過に合わせてごはんの山が小さくなる。
+///
+/// 器の下端が枠の下端にそろうように置き、ごはんは器のふちの上に乗せる。
+struct RiceBowlView: View {
+    var fullness: Double
+    var size: CGFloat = 150
+    var foodName: String = "ごはん"
+
+    private var clamped: Double { min(max(fullness, 0), 1) }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.clear
+                .frame(width: size, height: size * 0.78)
+
+            // ごはんの山。器のふちに乗せ、減るほど低くなる。
+            Ellipse()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 1.0, green: 0.93, blue: 0.74),
+                            Color(red: 0.95, green: 0.80, blue: 0.53)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(Ellipse().stroke(Color(red: 0.82, green: 0.66, blue: 0.42), lineWidth: 2))
+                .frame(width: size * 0.72, height: size * 0.26 * clamped)
+                .offset(y: -size * 0.47)
+                .opacity(clamped > 0.02 ? 1 : 0)
+                .animation(.easeInOut(duration: 0.5), value: clamped)
+
+            BowlShape()
+                .fill(Color.white)
+                .overlay(BowlShape().stroke(PiyoTheme.outline, lineWidth: 3))
+                .frame(width: size, height: size * 0.5)
+
+            if clamped <= 0.02 {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: size * 0.22))
+                    .foregroundStyle(PiyoTheme.success)
+                    .offset(y: -size * 0.58)
+                    .transition(.scale)
+            }
+        }
+        .frame(width: size, height: size * 0.78, alignment: .bottom)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(clamped <= 0.02 ? "\(foodName)を たべおわった" : "\(foodName)が のこっている")
+    }
+}
+
+/// 下にすぼまった茶碗の形。
+struct BowlShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let inset = rect.width * 0.18
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX - inset, y: rect.maxY),
+            control: CGPoint(x: rect.maxX - inset * 0.3, y: rect.maxY * 0.75)
+        )
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + inset, y: rect.maxY),
+            control: CGPoint(x: rect.midX, y: rect.maxY + rect.height * 0.22)
+        )
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX, y: rect.minY),
+            control: CGPoint(x: rect.minX + inset * 0.3, y: rect.maxY * 0.75)
+        )
+        path.closeSubpath()
+        return path
     }
 }
 

@@ -20,6 +20,9 @@ final class AttemptEntity {
     var attemptIndex: Int = 1
     var duration: Double = 0
     var createdAt: Date = Date()
+    /// 項目ごとの習熟度に使う。古いデータには入っていないので省略可能。
+    var itemIDRaw: String?
+    var abilityRaw: String?
 
     init(record: AttemptRecord) {
         self.identifier = record.id
@@ -31,6 +34,8 @@ final class AttemptEntity {
         self.attemptIndex = record.attemptIndex
         self.duration = record.duration
         self.createdAt = record.createdAt
+        self.itemIDRaw = record.itemID?.rawValue
+        self.abilityRaw = record.ability?.rawValue
     }
 
     var record: AttemptRecord? {
@@ -46,7 +51,9 @@ final class AttemptEntity {
             answerMode: mode,
             attemptIndex: attemptIndex,
             duration: duration,
-            createdAt: createdAt
+            createdAt: createdAt,
+            itemID: itemIDRaw.flatMap(LearningItemID.init(rawValue:)),
+            ability: abilityRaw.flatMap(LearningAbility.init(rawValue:))
         )
     }
 }

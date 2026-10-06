@@ -15,8 +15,19 @@ extension EnvironmentValues {
 
 /// 実際に与えられた大きさから寸法を決めて、下の View へ配る。
 /// 端末名ではなく実寸で決めるので、分割表示でも回転でも正しく追従する。
+///
+/// 測った値は置いた View 自身の `@Environment(\.piyoLayout)` には返ってこないので、
+/// 自分で値を見たいときは引数つきのクロージャを使う。
 struct PiyoLayoutReader<Content: View>: View {
-    @ViewBuilder var content: Content
+    private let content: (LayoutMetrics) -> Content
+
+    init(@ViewBuilder content: @escaping (LayoutMetrics) -> Content) {
+        self.content = content
+    }
+
+    init(@ViewBuilder content: @escaping () -> Content) {
+        self.content = { _ in content() }
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -24,7 +35,7 @@ struct PiyoLayoutReader<Content: View>: View {
                 width: Double(proxy.size.width),
                 height: Double(proxy.size.height)
             )
-            content
+            content(metrics)
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 .environment(\.piyoLayout, metrics)
         }
