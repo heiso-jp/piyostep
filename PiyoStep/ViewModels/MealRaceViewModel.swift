@@ -99,7 +99,9 @@ final class MealRaceViewModel {
     func begin() {
         guard stage == .ready else { return }
         environment.adPresenter.isLearningSessionActive = true
-        environment.speak(engine.character.raceIntroLine)
+        // 始まりのセリフはスタート前の画面を開いたときに読み上げている。
+        // ここでも言うと 2 回続けて聞こえるので、読みかけなら止めるだけにする。
+        environment.stopSpeaking()
         runCountdown(from: 3)
     }
 
@@ -126,7 +128,7 @@ final class MealRaceViewModel {
         announcedRemaining = []
         messagePinnedUntil = nil
         characterMessage = engine.character.eatLine
-        // 始まりのセリフは begin() で読み上げ済みなので、ここでは繰り返さない。
+        // 食べ始めのセリフはカウントダウンのあとすぐには読まず、次に様子が変わったときに声をかける。
         lastSpokenLine = characterMessage
         environment.play(.mealStart)
         updateSnapshot()
