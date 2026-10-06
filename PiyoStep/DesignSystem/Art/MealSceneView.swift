@@ -163,7 +163,9 @@ private final class MealSceneSurface: UIView {
         playback = MealScenePlayback(
             selector: MealSceneSelector(scenes: assets.manifest.scenes,
                                         random: SeededRandomSource(seed: seed ^ 0x5049594F53434E45)),
-            activity: activity
+            activity: activity,
+            // 素材の 1 本は短いので、同じ動きを 4 回続けてから次へ移る。
+            playsPerScene: 4
         )
         super.init(frame: .zero)
         imageView.contentMode = .scaleAspectFit

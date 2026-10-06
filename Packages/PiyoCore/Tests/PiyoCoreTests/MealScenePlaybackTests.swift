@@ -129,4 +129,22 @@ final class MealScenePlaybackTests: XCTestCase {
         XCTAssertFalse(MealSceneManifest(characterID: "piyo", width: 640, height: 360,
                                           scenes: [scene("a"), scene("a")]).isValid)
     }
+
+    func testEachGestureRepeatsBeforeTheNextOne() {
+        let scenes = [scene("scene01"), scene("scene02"), scene("scene03")]
+        let playback = MealScenePlayback(
+            selector: MealSceneSelector(scenes: scenes, random: SeededRandomSource(seed: 7)),
+            activity: .eating,
+            playsPerScene: 4
+        )
+        let first = playback.currentScene!
+        // 3 回分流しても同じ動きのまま
+        for _ in 0 ..< 3 { playback.advance(by: first.duration) }
+        XCTAssertEqual(playback.currentScene?.id, first.id)
+        XCTAssertEqual(playback.completedSceneCount, 0)
+        // 4 回目が終わったら次の動きへ
+        playback.advance(by: first.duration)
+        XCTAssertNotEqual(playback.currentScene?.id, first.id)
+        XCTAssertEqual(playback.completedSceneCount, 1)
+    }
 }
