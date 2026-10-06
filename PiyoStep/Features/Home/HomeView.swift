@@ -49,13 +49,6 @@ struct HomeView: View {
     /// 広告を閉じたら保護者画面を開く、という待ち状態
     @State private var opensParentAreaAfterAd = false
 
-    private var columns: [GridItem] {
-        Array(
-            repeating: GridItem(.flexible(), spacing: CGFloat(layout.sized(16))),
-            count: layout.subjectColumns
-        )
-    }
-
     var body: some View {
         ZStack {
             PiyoBackground(tint: PiyoTheme.primary)
@@ -131,6 +124,7 @@ struct HomeView: View {
         case .parentGate:
             ParentGateView(
                 onPass: {
+                    environment.markParentGatePassed()
                     sheetRoute = nil
                     presentAfterDismiss { openParentArea() }
                 },
@@ -143,28 +137,27 @@ struct HomeView: View {
 
     // MARK: - 並べ方
 
-    /// 横向きは左右に分ける。縦に積むと、高さ 390pt の iPhone 横持ちで
-    /// 「きょうの チャレンジ」より下が画面の外に出てしまう。
+    /// いまはごはんタイマーを主役にする。学習メニューは右側に小さくまとめる。
+    /// 横向きは左右に分ける。縦に積むと、高さ 390pt の iPhone 横持ちで下が画面の外に出てしまう。
     @ViewBuilder
     private var layoutBody: some View {
         if layout.shape.isLandscape {
             HStack(alignment: .top, spacing: CGFloat(layout.spacing)) {
                 VStack(spacing: CGFloat(layout.spacing)) {
                     header
-                    dailyChallengeCard
-                    bottomButtons
+                    mealTimerHero
                 }
                 .frame(maxWidth: .infinity)
+                .layoutPriority(1)
 
-                subjectsGrid
-                    .frame(maxWidth: .infinity)
+                otherMenus
+                    .frame(width: CGFloat(layout.sized(330)))
             }
         } else {
             VStack(spacing: CGFloat(layout.spacing)) {
                 header
-                dailyChallengeCard
-                subjectsGrid
-                bottomButtons
+                mealTimerHero
+                otherMenus
             }
         }
     }
@@ -270,73 +263,94 @@ struct HomeView: View {
         }
     }
 
-    private var dailyChallengeCard: some View {
-        BigButton(color: PiyoTheme.primary, minHeight: CGFloat(layout.sized(140)), action: startDailyChallenge) {
-            HStack(spacing: 18) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 46, weight: .bold))
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("きょうの チャレンジ")
+    /// 主役のごはんタイマー。
+    private var mealTimerHero: some View {
+        BigButton(color: PiyoTheme.success, minHeight: CGFloat(layout.sized(220))) {
+            environment.haptics.tap()
+            fullScreenRoute = .meal
+        } label: {
+            HStack(spacing: CGFloat(layout.sized(16))) {
+                if MealSceneView<EmptyView>.hasScenes(for: environment.mealCharacter) {
+                    MealSceneView(character: environment.mealCharacter, activity: .resting, isPlaying: false,
+                                  reduceAnimations: true, seed: 0) { _ in EmptyView() }
+                        .frame(maxHeight: CGFloat(layout.sized(180)))
+                        .clipShape(RoundedRectangle(cornerRadius: PiyoTheme.smallCornerRadius, style: .continuous))
+                        .allowsHitTesting(false)
+                } else {
+                    CharacterArtView(character: environment.mealCharacter, mood: .happy,
+                                     size: CGFloat(layout.artSized(150)))
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Image(systemName: "fork.knife")
+                        .font(.system(size: CGFloat(layout.fontSize(34)), weight: .bold))
+                    Text("ごはんタイマー")
                         .piyoFont(.title)
                         .minimumScaleFactor(0.6)
                         .lineLimit(1)
-                    Text("\(environment.settings.dailyGoal.questionCount)もん・\(estimatedMinutes)ふんくらい")
+                    Text("\(environment.mealCharacter.name)と いっしょに たべよう")
                         .piyoFont(.body)
                         .opacity(0.92)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(2)
                 }
-                Spacer()
+                Spacer(minLength: 0)
             }
             .padding(.vertical, 14)
         }
-        .accessibilityIdentifier(A11yID.homeDailyChallenge)
+        .accessibilityIdentifier(A11yID.homeMealTimer)
     }
 
-    private var estimatedMinutes: Int {
-        max(3, min(10, environment.settings.dailyGoal.questionCount / 2 + 2))
-    }
+    /// ごはんタイマー以外。目立たせないよう、小さく控えめな色でまとめる。
+    private var otherMenus: some View {
+        VStack(alignment: .leading, spacing: CGFloat(layout.sized(8))) {
+            Text("ほかの あそび")
+                .piyoFont(.caption)
+                .foregroundStyle(PiyoTheme.textSoft)
 
-    private var subjectsGrid: some View {
-        LazyVGrid(columns: columns, spacing: CGFloat(layout.sized(16))) {
-            ForEach(Array(environment.settings.enabledSubjects).sorted(by: { $0.rawValue < $1.rawValue })) { subject in
-                IconTitleButton(
-                    systemImage: icon(for: subject),
-                    title: subject.childTitle,
-                    color: PiyoTheme.color(for: subject),
-                    minHeight: CGFloat(layout.sized(126))
-                ) {
-                    environment.haptics.tap()
-                    environment.speak(subject.childTitle)
-                    sheetRoute = .subjectMenu(subject)
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: CGFloat(layout.sized(8))), count: 3),
+                spacing: CGFloat(layout.sized(8))
+            ) {
+                smallMenuButton(systemImage: "sparkles", title: "チャレンジ", action: startDailyChallenge)
+                    .accessibilityIdentifier(A11yID.homeDailyChallenge)
+
+                ForEach(Subject.orderedByPriority.filter(environment.settings.enabledSubjects.contains)) { subject in
+                    smallMenuButton(systemImage: icon(for: subject), title: subject.childTitle) {
+                        environment.haptics.tap()
+                        environment.speak(subject.childTitle)
+                        sheetRoute = .subjectMenu(subject)
+                    }
+                    .accessibilityIdentifier("\(A11yID.homeSubject)\(subject.rawValue)")
                 }
-                .accessibilityIdentifier("\(A11yID.homeSubject)\(subject.rawValue)")
+
+                smallMenuButton(systemImage: "books.vertical.fill", title: "ずかん") {
+                    environment.haptics.tap()
+                    sheetRoute = .collection
+                }
+                .accessibilityIdentifier(A11yID.homeCollection)
             }
         }
     }
 
-    private var bottomButtons: some View {
-        HStack(spacing: CGFloat(layout.sized(16))) {
-            IconTitleButton(
-                systemImage: "fork.knife",
-                title: "ごはんタイマー",
-                color: PiyoTheme.success,
-                minHeight: CGFloat(layout.sized(116))
-            ) {
-                environment.haptics.tap()
-                fullScreenRoute = .meal
+    private func smallMenuButton(systemImage: String, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.system(size: CGFloat(layout.fontSize(20)), weight: .bold))
+                Text(title)
+                    .piyoFont(size: 13, weight: .semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
             }
-            .accessibilityIdentifier(A11yID.homeMealTimer)
-
-            IconTitleButton(
-                systemImage: "books.vertical.fill",
-                title: "ずかん",
-                color: PiyoTheme.calm,
-                minHeight: CGFloat(layout.sized(116))
-            ) {
-                environment.haptics.tap()
-                sheetRoute = .collection
-            }
-            .accessibilityIdentifier(A11yID.homeCollection)
+            .foregroundStyle(PiyoTheme.textSoft)
+            .padding(.horizontal, 6)
+            .frame(maxWidth: .infinity, minHeight: CGFloat(layout.sized(76)))
+            .background(
+                RoundedRectangle(cornerRadius: PiyoTheme.smallCornerRadius, style: .continuous)
+                    .fill(PiyoTheme.surface.opacity(0.8))
+            )
         }
+        .buttonStyle(.plain)
     }
 
     private func icon(for subject: Subject) -> String {

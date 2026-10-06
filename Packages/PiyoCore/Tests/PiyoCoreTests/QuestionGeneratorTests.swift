@@ -66,10 +66,10 @@ final class ClockQuestionGeneratorTests: XCTestCase {
         let question = generator.generate(level: .level4, random: random, allowVoice: true)
         guard case let .time(expected, _) = question.answer,
               let correct = question.choices.first(where: \.isCorrect),
-              case let .clock(shown) = correct.display else {
+              case let .text(shown) = correct.display else {
             return XCTFail("時刻問題の構造が想定と違う")
         }
-        XCTAssertEqual(shown, expected)
+        XCTAssertEqual(shown, expected.displayJapanese)
     }
 
     func testVoiceModeCanBeDisabled() {
@@ -291,8 +291,11 @@ final class KanaAndEnglishGeneratorTests: XCTestCase {
             return XCTFail("trace 以外の期待値")
         }
         XCTAssertEqual(required, KanaWriteQuestionGenerator.requiredCoverage(for: .level2), accuracy: 0.0001)
-        XCTAssertEqual(KanaWriteQuestionGenerator.task(for: .level2), .trace)
-        XCTAssertEqual(KanaWriteQuestionGenerator.task(for: .level4), .write, "Lv4 以上はお手本なし")
+        let high = generator.generate(level: .level5, random: Fixture.random(), allowVoice: true)
+        guard case let .kanaCard(_, task) = high.content else {
+            return XCTFail("kanaCard 以外")
+        }
+        XCTAssertEqual(task, .trace, "どのレベルでもお手本を出す")
     }
 
     func testKanaWordQuestionAsksForFirstCharacter() {

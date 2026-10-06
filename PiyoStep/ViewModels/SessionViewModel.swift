@@ -26,6 +26,10 @@ final class SessionViewModel {
     let subject: Subject?
     let questions: [Question]
 
+    /// いま出ている問題。
+    /// LearningSessionEngine は @Observable ではないため、computed のままだと
+    /// 問題が進んでも SwiftUI が変化に気づけず、選択肢が前の問題のまま残る。
+    private(set) var currentQuestion: Question?
     private(set) var stage: Stage = .asking
     private(set) var feedback: SessionFeedback?
     private(set) var summary: SessionSummary?
@@ -71,10 +75,6 @@ final class SessionViewModel {
     }
 
     // MARK: - 進行
-
-    var currentQuestion: Question? {
-        engine.currentQuestion
-    }
 
     var progressCount: Int { currentIndex }
     var totalCount: Int { questions.count }
@@ -126,6 +126,7 @@ final class SessionViewModel {
     func retryCurrentQuestion() {
         stopVoice()
         _ = engine.retry()
+        currentQuestion = engine.currentQuestion
         showsHint = true
         selectedChoiceID = nil
         numberInput = ""
@@ -155,6 +156,7 @@ final class SessionViewModel {
     }
 
     private func prepareForCurrentQuestion(speakPrompt shouldSpeak: Bool) {
+        currentQuestion = engine.currentQuestion
         currentIndex = engine.currentIndex
         stage = .asking
         feedback = nil
@@ -184,6 +186,7 @@ final class SessionViewModel {
     }
 
     private func finish(with result: SessionSummary) {
+        currentQuestion = nil
         summary = result
         stage = .finished
         environment.adPresenter.isLearningSessionActive = false
@@ -215,11 +218,9 @@ final class SessionViewModel {
     }
 
     func submitTrace() {
-        guard let question = currentQuestion else { return }
-        let text = AnswerGrader.correctAnswerDisplay(for: question)
-        let mask = GlyphMaskRenderer.mask(for: text)
-        let evaluation = TraceEvaluator.evaluate(mask: mask, strokes: traceStrokes, brushRadius: 0.075)
-        submit(.trace(coverage: evaluation.score))
+        guard currentQuestion != nil else { return }
+        // 形の一致は見ない。線を書いて「できた！」を押せば正解にする。
+        submit(.trace(coverage: traceStrokes.isEmpty ? 0 : 1))
     }
 
     func skip() {

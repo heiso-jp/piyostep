@@ -59,15 +59,27 @@ public struct TraceEvaluation: Equatable, Sendable {
     public let coverage: Double
     /// 描いた線のうち、お手本の上にあった割合（0.0 - 1.0）
     public let precision: Double
+    /// 画数の一致度（0.0 - 1.0）。画数が分からないときは 1.0。
+    public let strokeMatch: Double
 
-    public init(coverage: Double, precision: Double) {
+    public init(coverage: Double, precision: Double, strokeMatch: Double = 1) {
         self.coverage = min(max(coverage, 0), 1)
         self.precision = min(max(precision, 0), 1)
+        self.strokeMatch = min(max(strokeMatch, 0), 1)
     }
 
-    /// 判定に使う総合スコア。はみ出しには寛容にする（幼児の運筆のため）。
+    /// 判定に使う総合スコア。
+    ///
+    /// 「お手本を覆えたか」だけを見ると、ぐりぐり塗りつぶすだけで満点になってしまう。
+    /// 「はみ出していないか」と合わせた F 値（覆えたほうをやや重く）に、
+    /// 画数の一致度を掛ける。幼児の運筆を考えて、beta で coverage 寄りにしている。
     public var score: Double {
-        coverage * (0.75 + 0.25 * precision)
+        guard coverage > 0, precision > 0 else { return 0 }
+        let beta = 1.3
+        let betaSquared = beta * beta
+        let fMeasure = (1 + betaSquared) * precision * coverage
+            / (betaSquared * precision + coverage)
+        return min(1, max(0, fMeasure * strokeMatch))
     }
 }
 
@@ -75,14 +87,30 @@ public enum TraceEvaluator {
 
     /// 正規化ストロークをマスク解像度でラスタライズし、被覆率を求める。
     /// - Parameter brushRadius: 正規化座標系での筆の半径（0.0 - 1.0）。
+    /// 画数がどれだけ合っているか。
+    /// 幼児は続け書きをするので、1 画の違いまでは差としてみない。
+    public static func strokeMatch(drawn: Int, expected: Int?) -> Double {
+        guard let expected, expected > 0, drawn > 0 else { return 1 }
+        switch abs(drawn - expected) {
+        case 0, 1: return 1.0
+        case 2: return 0.85
+        case 3: return 0.7
+        default: return 0.55
+        }
+    }
+
+    /// - Parameter expectedStrokeCount: お手本の画数。分かる場合だけ渡す。
     public static func evaluate(
         mask: GlyphMask,
         strokes: [[TracePoint]],
-        brushRadius: Double = 0.06
+        brushRadius: Double = 0.06,
+        expectedStrokeCount: Int? = nil
     ) -> TraceEvaluation {
+        let drawnStrokes = strokes.filter { !$0.isEmpty }.count
+        let match = strokeMatch(drawn: drawnStrokes, expected: expectedStrokeCount)
         let total = mask.filledCount
         guard total > 0, mask.width > 0, mask.height > 0 else {
-            return TraceEvaluation(coverage: 0, precision: 0)
+            return TraceEvaluation(coverage: 0, precision: 0, strokeMatch: match)
         }
 
         var painted = [Bool](repeating: false, count: mask.width * mask.height)
@@ -121,7 +149,7 @@ public enum TraceEvaluator {
 
         let coverage = Double(covered) / Double(total)
         let precision = paintedCount > 0 ? Double(covered) / Double(paintedCount) : 0
-        return TraceEvaluation(coverage: coverage, precision: precision)
+        return TraceEvaluation(coverage: coverage, precision: precision, strokeMatch: match)
     }
 
     private static func stamp(

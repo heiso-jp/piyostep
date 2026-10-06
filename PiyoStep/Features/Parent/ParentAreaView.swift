@@ -53,6 +53,7 @@ struct ProgressDashboardView: View {
                 if let model {
                     summaryCards(model)
                     weeklyChart(model)
+                    ItemMasterySection(model: model)
                     subjectSection(model)
                     strengthsSection(model)
                     recentSection(model)

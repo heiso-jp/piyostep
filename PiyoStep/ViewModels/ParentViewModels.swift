@@ -177,6 +177,12 @@ final class ParentDashboardViewModel {
     private let environment: AppEnvironment
 
     private(set) var summary: ProgressSummary = .empty
+    /// 文字・数字ごとの習熟度。キーは `ItemMastery.id`。
+    private(set) var itemMastery: [String: ItemMastery] = [:]
+    /// 習熟度に算入しないなぞり書きの回数。
+    private(set) var practiceCounts: [LearningItemID: Int] = [:]
+
+    private let itemEstimator = ItemMasteryEstimator()
 
     init(environment: AppEnvironment) {
         self.environment = environment
@@ -185,6 +191,43 @@ final class ParentDashboardViewModel {
     func refresh() {
         environment.refreshProgress()
         summary = environment.progress
+
+        let attempts = environment.historyStore.attempts()
+        itemMastery = itemEstimator.snapshots(from: attempts)
+        practiceCounts = itemEstimator.practiceCounts(from: attempts)
+    }
+
+    // MARK: - 文字・数字ごとの習熟度
+
+    func mastery(for item: LearningItemID, ability: LearningAbility) -> ItemMastery? {
+        itemMastery["\(item.rawValue).\(ability.rawValue)"]
+    }
+
+    func averagePercent(for category: LearningItemID.Category, ability: LearningAbility) -> Int? {
+        itemEstimator.averagePercent(for: category, ability: ability, in: itemMastery)
+    }
+
+    func practiceCount(for item: LearningItemID) -> Int {
+        practiceCounts[item] ?? 0
+    }
+
+    /// そのカテゴリで追いかける項目の並び。
+    func items(in category: LearningItemID.Category) -> [LearningItemID] {
+        switch category {
+        case .hiragana:
+            return KanaCatalog.all.map { .kana($0.hiragana, subject: .hiragana) }
+        case .katakana:
+            return KanaCatalog.all.map { .kana($0.katakana, subject: .katakana) }
+        case .alphabet:
+            return AlphabetCatalog.all.map { .alphabet($0.uppercase) }
+        case .number:
+            return (0 ... 9).map { .number($0) }
+        }
+    }
+
+    /// そのカテゴリで見せる力。数字に「かき」の問題は無い。
+    func abilities(in category: LearningItemID.Category) -> [LearningAbility] {
+        category == .number ? [.read] : [.read, .write]
     }
 
     var childName: String {

@@ -17,11 +17,13 @@ struct SessionView: View {
     }
 
     var body: some View {
-        ZStack {
-            PiyoBackground(tint: PiyoTheme.color(for: request.subject ?? .number))
+        PiyoLayoutReader { _ in
+            ZStack {
+                PiyoBackground(tint: PiyoTheme.color(for: request.subject ?? .number))
 
-            if let model {
-                sessionBody(model)
+                if let model {
+                    sessionBody(model)
+                }
             }
         }
         .accessibilityElement(children: .contain)
@@ -273,6 +275,24 @@ struct FeedbackPanel: View {
                         .minimumScaleFactor(0.6)
                         .lineLimit(3)
                         .accessibilityIdentifier(A11yID.sessionFeedback)
+
+                    // 挑戦回数を使い切ったら、答えが分からないままにしない。
+                    if feedback.revealsAnswer, !feedback.correctAnswerDisplay.isEmpty {
+                        HStack(spacing: 8) {
+                            Text("こたえは")
+                                .piyoFont(.body)
+                                .foregroundStyle(PiyoTheme.textSoft)
+                            Text(feedback.correctAnswerDisplay)
+                                .piyoFont(.headline)
+                                .foregroundStyle(PiyoTheme.primaryDeep)
+                                .minimumScaleFactor(0.5)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(PiyoTheme.cheer.opacity(0.24)))
+                        .accessibilityIdentifier(A11yID.sessionAnswerReveal)
+                    }
                     if feedback.starsEarned > 0 {
                         StarRewardView(stars: feedback.starsEarned, maximum: 2, size: 26)
                     }

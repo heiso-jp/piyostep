@@ -151,22 +151,15 @@ final class SessionViewModelTests: XCTestCase {
         XCTAssertEqual(model.feedback?.judgement, .correct)
     }
 
-    func testTraceAnswerUsesRenderedGlyph() {
+    func testAnyTraceIsCorrect() {
         let environment = TestEnvironment.make()
         let model = makeModel(environment: environment, questions: [TestEnvironment.traceQuestion()])
 
-        // キャンバス全体を塗りつぶすように何本も線を引く
-        var strokes: [[TracePoint]] = []
-        for row in stride(from: 0.05, through: 0.95, by: 0.03) {
-            strokes.append([
-                TracePoint(x: 0.02, y: row),
-                TracePoint(x: 0.98, y: row)
-            ])
-        }
-        model.traceStrokes = strokes
+        // 形の一致は見ないので、お手本から外れた線でも正解にする。
+        model.traceStrokes = [[TracePoint(x: 0.05, y: 0.05), TracePoint(x: 0.1, y: 0.1)]]
         model.submitTrace()
 
-        XCTAssertEqual(model.feedback?.judgement, .correct, "十分になぞれば正解になる")
+        XCTAssertEqual(model.feedback?.judgement, .correct, "書いて「できた！」を押せば正解")
     }
 
     func testEmptyTraceIsNotCorrect() {

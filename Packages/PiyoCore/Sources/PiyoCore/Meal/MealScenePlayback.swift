@@ -179,9 +179,14 @@ public final class MealScenePlayback {
     public var isPaused = false
     public var reduceMotion = false
     public var frameIndex: Int { currentScene?.frameIndex(at: elapsed) ?? 0 }
+    /// 1 つの動きを何回くり返してから次の動きに移るか。
+    /// 素材は 1 本 1.5〜2.6 秒と短く、1 回ごとに変わると落ち着かないので、同じ動きをしばらく続ける。
+    public let playsPerScene: Int
+    private var playsOfCurrentScene = 0
 
-    public init(selector: MealSceneSelector, activity: CharacterActivity) {
+    public init(selector: MealSceneSelector, activity: CharacterActivity, playsPerScene: Int = 1) {
         self.selector = selector
+        self.playsPerScene = max(1, playsPerScene)
         requestedActivity = activity
         isFinished = activity == .finished
         currentScene = selector.next(for: activity)
@@ -201,6 +206,12 @@ public final class MealScenePlayback {
         elapsed += delta
         while let scene = currentScene, elapsed + 0.000_000_001 >= scene.duration {
             elapsed = max(0, elapsed - scene.duration)
+            playsOfCurrentScene += 1
+            // 決めた回数に届くまでは、同じ動きを頭からもう一度流す。
+            // ただし「食べる → 休む」のように様子が変わったら、くり返しを打ち切ってすぐ切り替える。
+            if playsOfCurrentScene < playsPerScene,
+               scene.allowedActivities.contains(requestedActivity.rawValue) { continue }
+            playsOfCurrentScene = 0
             completedSceneCount += 1
             currentScene = selector.next(for: requestedActivity)
             if currentScene == nil { elapsed = 0 }

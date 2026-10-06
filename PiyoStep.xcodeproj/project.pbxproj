@@ -33,7 +33,7 @@
 		1A0000000000000000000040 /* PiyoStep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PiyoStep.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000000000000000000041 /* PiyoStepTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PiyoStepTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000000000000000000042 /* PiyoStepUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PiyoStepUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		1A00000000000000000000A0 /* PiyoCore */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Packages/PiyoCore; sourceTree = "<group>"; };
+		1A00000000000000000000A0 /* Packages/PiyoCore */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Packages/PiyoCore; sourceTree = "<group>"; };
 		1A00000000000000000000A1 /* docs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = docs; sourceTree = "<group>"; };
 		1A00000000000000000000A2 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -89,7 +89,7 @@
 			children = (
 				1A00000000000000000000A2 /* README.md */,
 				1A00000000000000000000A1 /* docs */,
-				1A00000000000000000000A0 /* PiyoCore */,
+				1A00000000000000000000A0 /* Packages/PiyoCore */,
 				1A0000000000000000000010 /* PiyoStep */,
 				1A0000000000000000000011 /* PiyoStepTests */,
 				1A0000000000000000000012 /* PiyoStepUITests */,

@@ -34,6 +34,15 @@ public enum SpeechRecognitionFailure: Error, Equatable, Sendable {
     case other(String)
 }
 
+/// 聞き取りの仕方。
+public enum SpeechListeningMode: Equatable, Sendable {
+    /// ひとつ答えたら終わる。学習の回答に使う。
+    case singleAnswer
+    /// 止めるまで聞き続ける。ごはんタイマーの「ごちそうさま」に使う。
+    /// 無音で打ち切らないので、食事中のように静かな時間が長くても待てる。
+    case continuous
+}
+
 /// 音声認識の抽象。テストではモックを注入する。
 public protocol SpeechRecognizing: AnyObject {
     var authorizationStatus: SpeechAuthorizationStatus { get }
@@ -44,12 +53,24 @@ public protocol SpeechRecognizing: AnyObject {
     /// 認識を開始する
     func startListening(
         locale: RecognitionLocale,
+        mode: SpeechListeningMode,
         onResult: @escaping (SpeechRecognitionResult) -> Void,
         onFailure: @escaping (SpeechRecognitionFailure) -> Void
     )
     func stopListening()
     /// 波形表示のための入力レベル（0.0 - 1.0）
     var audioLevel: Double { get }
+}
+
+extension SpeechRecognizing {
+    /// ひとつ答えたら終わる、既定の聞き取り。
+    public func startListening(
+        locale: RecognitionLocale,
+        onResult: @escaping (SpeechRecognitionResult) -> Void,
+        onFailure: @escaping (SpeechRecognitionFailure) -> Void
+    ) {
+        startListening(locale: locale, mode: .singleAnswer, onResult: onResult, onFailure: onFailure)
+    }
 }
 
 /// 読み上げの抽象。
@@ -109,13 +130,17 @@ public final class MockSpeechRecognizer: SpeechRecognizing {
         completion(authorizationStatus)
     }
 
+    public private(set) var lastMode: SpeechListeningMode?
+
     public func startListening(
         locale: RecognitionLocale,
+        mode: SpeechListeningMode,
         onResult: @escaping (SpeechRecognitionResult) -> Void,
         onFailure: @escaping (SpeechRecognitionFailure) -> Void
     ) {
         startCount += 1
         lastLocale = locale
+        lastMode = mode
         if let failure = failureToEmit {
             onFailure(failure)
             return

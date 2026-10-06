@@ -13,17 +13,32 @@ struct MealSceneView<Fallback: View>: View {
     let isPlaying: Bool
     let reduceAnimations: Bool
     let seed: UInt64
+    /// true なら枠いっぱいに敷き詰める（はみ出た端は切る）。
+    let fillsFrame: Bool
     let fallback: (Bool) -> Fallback
     @State private var didFail = false
 
     init(character: CharacterDefinition, activity: CharacterActivity, isPlaying: Bool,
-         reduceAnimations: Bool, seed: UInt64, @ViewBuilder fallback: @escaping (Bool) -> Fallback) {
+         reduceAnimations: Bool, seed: UInt64, fillsFrame: Bool = false,
+         @ViewBuilder fallback: @escaping (Bool) -> Fallback) {
         self.character = character
         self.activity = activity
         self.isPlaying = isPlaying
         self.reduceAnimations = reduceAnimations
         self.seed = seed
+        self.fillsFrame = fillsFrame
         self.fallback = fallback
+    }
+
+    /// このキャラクター用のアニメが入っているか。
+    static func hasScenes(for character: CharacterDefinition) -> Bool {
+        MealSceneAssets.bundled?.manifest.characterID == character.id
+    }
+
+    /// アニメの縦横比（幅 / 高さ）。
+    static var sceneAspectRatio: CGFloat? {
+        guard let manifest = MealSceneAssets.bundled?.manifest else { return nil }
+        return CGFloat(manifest.width) / CGFloat(manifest.height)
     }
 
     var body: some View {
@@ -36,15 +51,36 @@ struct MealSceneView<Fallback: View>: View {
                     isPlaying: isPlaying && scenePhase == .active,
                     reduceMotion: systemReduceMotion || reduceAnimations,
                     seed: seed,
+                    fillsFrame: fillsFrame,
                     onFailure: { didFail = true }
                 )
-                .aspectRatio(CGFloat(assets.manifest.width) / CGFloat(assets.manifest.height), contentMode: .fit)
+                .modifier(MealSceneFrame(
+                    aspectRatio: CGFloat(assets.manifest.width) / CGFloat(assets.manifest.height),
+                    fillsFrame: fillsFrame
+                ))
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(character.name)、\(activity.childCaption)")
             } else {
                 fallback(isPlaying && scenePhase == .active && !systemReduceMotion &&
                          !reduceAnimations && activity != .finished)
             }
+        }
+    }
+}
+
+/// 合わせて置くときは絵の縦横比で枠を決める。
+/// 敷き詰めるときは与えられた枠をそのまま使い、はみ出た分は UIImageView 側で切る。
+private struct MealSceneFrame: ViewModifier {
+    let aspectRatio: CGFloat
+    let fillsFrame: Bool
+
+    func body(content: Content) -> some View {
+        if fillsFrame {
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+        } else {
+            content.aspectRatio(aspectRatio, contentMode: .fit)
         }
     }
 }
@@ -84,10 +120,12 @@ private struct MealSceneRepresentable: UIViewRepresentable {
     let isPlaying: Bool
     let reduceMotion: Bool
     let seed: UInt64
+    let fillsFrame: Bool
     let onFailure: () -> Void
 
     func makeUIView(context: Context) -> MealSceneSurface {
         let view = MealSceneSurface(assets: assets, seed: seed, activity: activity)
+        view.imageContentMode = fillsFrame ? .scaleAspectFill : .scaleAspectFit
         view.onFailure = onFailure
         view.update(activity: activity, isPlaying: isPlaying, reduceMotion: reduceMotion)
         return view
@@ -114,6 +152,10 @@ private final class MealSceneSurface: UIView {
     private var failed = false
     private var wantsPlayback = false
     var onFailure: (() -> Void)?
+    var imageContentMode: UIView.ContentMode {
+        get { imageView.contentMode }
+        set { imageView.contentMode = newValue }
+    }
 
     init(assets: MealSceneAssets, seed: UInt64, activity: CharacterActivity) {
         self.assets = assets
@@ -121,10 +163,14 @@ private final class MealSceneSurface: UIView {
         playback = MealScenePlayback(
             selector: MealSceneSelector(scenes: assets.manifest.scenes,
                                         random: SeededRandomSource(seed: seed ^ 0x5049594F53434E45)),
-            activity: activity
+            activity: activity,
+            // 素材の 1 本は短いので、同じ動きを 3 回続けてから次へ移る。
+            playsPerScene: 3
         )
         super.init(frame: .zero)
         imageView.contentMode = .scaleAspectFit
+        imageView.clipsToBounds = true
+        clipsToBounds = true
         imageView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(imageView)
         NSLayoutConstraint.activate([

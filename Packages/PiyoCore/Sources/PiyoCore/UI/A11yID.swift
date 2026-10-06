@@ -13,6 +13,9 @@ public enum A11yID {
     public static let onboardingSkipName = "onboarding.skipName"
     public static let onboardingMicAllow = "onboarding.mic.allow"
     public static let onboardingMicLater = "onboarding.mic.later"
+    public static let onboardingVoiceButton = "onboarding.voiceButton"
+    public static let onboardingVoiceStatus = "onboarding.voiceStatus"
+    public static let onboardingKeyboardToggle = "onboarding.keyboardToggle"
 
     // ホーム
     public static let home = "home.root"
@@ -43,6 +46,7 @@ public enum A11yID {
     public static let sessionVoiceButton = "session.voiceButton"
     public static let sessionVoiceStatus = "session.voiceStatus"
     public static let sessionFeedback = "session.feedback"
+    public static let sessionAnswerReveal = "session.answerReveal"
     public static let sessionNext = "session.next"
     public static let sessionRetry = "session.retry"
     public static let sessionClose = "session.close"
@@ -59,17 +63,22 @@ public enum A11yID {
     public static let result = "result.root"
     public static let resultStars = "result.stars"
     public static let resultDone = "result.done"
+    public static let resultHandoff = "result.handoff"
+    public static let resultHandoffReceived = "result.handoff.received"
+    public static let resultParent = "result.parent"
+    public static let resultPraise = "result.praise"
+    public static let resultReview = "result.review"
+    public static let resultShowParent = "result.showParent"
 
     // ご飯タイマー
     public static let mealSetup = "meal.setup"
     public static let mealStart = "meal.start"
+    public static let mealMinutes = "meal.minutes"                  // + 分
     public static let mealRace = "meal.race"
-    public static let mealBite = "meal.bite"
     public static let mealFinish = "meal.finish"
     public static let mealResult = "meal.result"
     public static let mealResultDone = "meal.result.done"
     public static let mealCharacterProgress = "meal.characterProgress"
-    public static let mealChildProgress = "meal.childProgress"
 
     // コレクション
     public static let collection = "collection.root"
@@ -83,6 +92,8 @@ public enum A11yID {
     public static let parentGateCancel = "parent.gate.cancel"
     public static let parentTabs = "parent.tabs"
     public static let parentDashboard = "parent.dashboard"
+    public static let parentItemMastery = "parent.itemMastery"
+    public static let parentItemMasteryPicker = "parent.itemMastery.picker"
     public static let parentSettings = "parent.settings"
     public static let parentPurchase = "parent.purchase"
     public static let parentClose = "parent.close"

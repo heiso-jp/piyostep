@@ -44,7 +44,10 @@ public struct CountQuestionGenerator: QuestionGenerating {
             content: .countObjects(kind: kind, count: count),
             answer: .integer(count),
             answerModes: answerModes([.choice, .numberPad, .voice], allowVoice: allowVoice),
-            choices: choices
+            choices: choices,
+            // 項目別に追うのは 0〜9 だけ。それ以上は Skill 単位の習熟度で見る。
+            itemID: (0 ... 9).contains(count) ? .number(count) : nil,
+            ability: (0 ... 9).contains(count) ? .read : nil
         )
     }
 }
@@ -95,7 +98,9 @@ public struct NumberReadQuestionGenerator: QuestionGenerating {
             content: .numberRead(value: value),
             answer: .integer(value),
             answerModes: answerModes([.voice, .choice, .numberPad], allowVoice: allowVoice),
-            choices: choices
+            choices: choices,
+            itemID: (0 ... 9).contains(value) ? .number(value) : nil,
+            ability: (0 ... 9).contains(value) ? .read : nil
         )
     }
 }

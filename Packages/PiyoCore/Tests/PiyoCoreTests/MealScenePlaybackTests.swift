@@ -129,4 +129,37 @@ final class MealScenePlaybackTests: XCTestCase {
         XCTAssertFalse(MealSceneManifest(characterID: "piyo", width: 640, height: 360,
                                           scenes: [scene("a"), scene("a")]).isValid)
     }
+
+    func testEachGestureRepeatsBeforeTheNextOne() {
+        let scenes = [scene("scene01"), scene("scene02"), scene("scene03")]
+        let playback = MealScenePlayback(
+            selector: MealSceneSelector(scenes: scenes, random: SeededRandomSource(seed: 7)),
+            activity: .eating,
+            playsPerScene: 4
+        )
+        let first = playback.currentScene!
+        // 3 回分流しても同じ動きのまま
+        for _ in 0 ..< 3 { playback.advance(by: first.duration) }
+        XCTAssertEqual(playback.currentScene?.id, first.id)
+        XCTAssertEqual(playback.completedSceneCount, 0)
+        // 4 回目が終わったら次の動きへ
+        playback.advance(by: first.duration)
+        XCTAssertNotEqual(playback.currentScene?.id, first.id)
+        XCTAssertEqual(playback.completedSceneCount, 1)
+    }
+
+    func testActivityChangeCutsTheRepeatShort() {
+        let scenes = [scene("eat", activities: ["eating"]), scene("rest", activities: ["resting"])]
+        let playback = MealScenePlayback(
+            selector: MealSceneSelector(scenes: scenes, random: SeededRandomSource(seed: 7)),
+            activity: .eating,
+            playsPerScene: 3
+        )
+        XCTAssertEqual(playback.currentScene?.id, "eat")
+        playback.advance(by: 1.0)
+        playback.request(.resting)
+        // 食べる動きの 1 回目が終わったところで、休む動きに変わる
+        playback.advance(by: 1.0)
+        XCTAssertEqual(playback.currentScene?.id, "rest")
+    }
 }

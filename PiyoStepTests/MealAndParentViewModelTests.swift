@@ -33,17 +33,14 @@ final class MealRaceViewModelTests: XCTestCase {
         XCTAssertEqual(model.stage, .racing)
     }
 
-    func testBitesAdvanceTheChildPlate() {
+    func testCharacterPlateEmptiesAsTimePasses() {
         let model = MealRaceViewModel(environment: makeEnvironment())
         model.begin()
         TestEnvironment.wait(timeout: 3.0, until: { model.stage == .racing })
 
-        let before = model.snapshot.childProgress
-        model.takeBite()
-        model.takeBite()
-        model.takeBite()
-        XCTAssertGreaterThan(model.snapshot.childProgress, before)
-        XCTAssertLessThan(model.childPlateFullness, 1.0)
+        // 始まった直後はキャラクターのお皿がまだいっぱいにある。
+        XCTAssertGreaterThan(model.characterPlateFullness, 0.9)
+        XCTAssertEqual(model.snapshot.characterProgress, 0, accuracy: 0.05)
     }
 
     func testFinishingEarlyBeatsTheCharacter() {

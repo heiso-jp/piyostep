@@ -13,7 +13,9 @@ public struct DailyChallenge: Identifiable, Sendable {
     }
 
     public var skills: [Skill] { questions.map(\.skill) }
-    public var subjects: [Subject] { Array(Set(questions.map(\.subject))).sorted { $0.rawValue < $1.rawValue } }
+    public var subjects: [Subject] {
+        Array(Set(questions.map(\.subject))).sorted { $0.learningPriority < $1.learningPriority }
+    }
     public var questionCount: Int { questions.count }
 }
 
@@ -49,17 +51,21 @@ public struct DailyChallengeBuilder {
         snapshot: MasterySnapshot?,
         now: Date
     ) -> Double {
-        guard let snapshot else {
+        let base: Double
+        if let snapshot {
+            let weakness = 1.0 - snapshot.masteryScore
+            var recencyBonus = 0.5
+            if let last = snapshot.lastPracticedAt {
+                let days = now.timeIntervalSince(last) / 86_400
+                recencyBonus = min(0.6, max(0.0, days / 7.0 * 0.6))
+            }
+            base = max(0.05, weakness + recencyBonus)
+        } else {
             // 未学習の Skill は積極的に出す。
-            return 1.4
+            base = 1.4
         }
-        let weakness = 1.0 - snapshot.masteryScore
-        var recencyBonus = 0.5
-        if let last = snapshot.lastPracticedAt {
-            let days = now.timeIntervalSince(last) / 86_400
-            recencyBonus = min(0.6, max(0.0, days / 7.0 * 0.6))
-        }
-        return max(0.05, weakness + recencyBonus)
+        // 教科ごとの優先度を掛ける。ひらがな・すうじを土台にし、英語系は出過ぎないようにする。
+        return base * skill.subject.challengeWeightMultiplier
     }
 
     /// Skill に対する出題難易度を決める。

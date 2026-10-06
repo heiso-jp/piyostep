@@ -13,6 +13,10 @@ public struct AttemptRecord: Hashable, Codable, Sendable, Identifiable {
     /// 回答に要した秒数
     public let duration: TimeInterval
     public let createdAt: Date
+    /// どの文字・数字だったか。項目ごとの習熟度に使う。
+    public let itemID: LearningItemID?
+    /// 測れる力（よみ / かき）。習熟度に算入しない練習では nil。
+    public let ability: LearningAbility?
 
     public init(
         id: UUID = UUID(),
@@ -23,7 +27,9 @@ public struct AttemptRecord: Hashable, Codable, Sendable, Identifiable {
         answerMode: AnswerMode,
         attemptIndex: Int = 1,
         duration: TimeInterval = 0,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        itemID: LearningItemID? = nil,
+        ability: LearningAbility? = nil
     ) {
         self.id = id
         self.sessionID = sessionID
@@ -34,6 +40,8 @@ public struct AttemptRecord: Hashable, Codable, Sendable, Identifiable {
         self.attemptIndex = attemptIndex
         self.duration = duration
         self.createdAt = createdAt
+        self.itemID = itemID
+        self.ability = ability
     }
 }
 
