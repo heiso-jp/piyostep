@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "width": 640,
+  "height": 360,
+  "frameDurationMs": 100,
+  "finishedImage": "finished.png",
+  "allowConsecutiveRepeat": false,
+  "switchAfterSceneEnds": true,
+  "scenes": [
+    {
+      "id": "scene01",
+      "file": "01-small_flap.apng",
+      "label": "小さく羽ばたく",
+      "frameCount": 20,
+      "durationMs": 2000,
+      "frameDurationsMs": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "sourceStartFrame": 0,
+      "sourceEndFrameExclusive": 20,
+      "allowedActivities": [
+        "eating",
+        "resting",
+        "cheering"
+      ],
+      "entryPose": "neutral_standing",
+      "exitPose": "neutral_standing",
+      "allowedNextSceneIds": [
+        "scene02",
+        "scene03",
+        "scene04",
+        "scene05"
+      ]
+    },
+    {
+      "id": "scene02",
+      "file": "02-furrowed_hop.apng",
+      "label": "眉を寄せて跳ねる",
+      "frameCount": 20,
+      "durationMs": 2000,
+      "frameDurationsMs": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "sourceStartFrame": 20,
+      "sourceEndFrameExclusive": 40,
+      "allowedActivities": [
+        "eating",
+        "resting",
+        "cheering"
+      ],
+      "entryPose": "neutral_standing",
+      "exitPose": "neutral_standing",
+      "allowedNextSceneIds": [
+        "scene01",
+        "scene03",
+        "scene04",
+        "scene05"
+      ]
+    },
+    {
+      "id": "scene03",
+      "file": "03-smile_flap.apng",
+      "label": "笑顔で羽ばたく",
+      "frameCount": 20,
+      "durationMs": 2000,
+      "frameDurationsMs": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "sourceStartFrame": 40,
+      "sourceEndFrameExclusive": 60,
+      "allowedActivities": [
+        "eating",
+        "resting",
+        "cheering"
+      ],
+      "entryPose": "neutral_standing",
+      "exitPose": "neutral_standing",
+      "allowedNextSceneIds": [
+        "scene01",
+        "scene02",
+        "scene04",
+        "scene05"
+      ]
+    },
+    {
+      "id": "scene04",
+      "file": "04-eyes_closed.apng",
+      "label": "目を閉じる",
+      "frameCount": 15,
+      "durationMs": 1500,
+      "frameDurationsMs": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "sourceStartFrame": 60,
+      "sourceEndFrameExclusive": 75,
+      "allowedActivities": [
+        "eating",
+        "resting",
+        "cheering"
+      ],
+      "entryPose": "neutral_standing",
+      "exitPose": "neutral_standing",
+      "allowedNextSceneIds": [
+        "scene01",
+        "scene02",
+        "scene03",
+        "scene05"
+      ]
+    },
+    {
+      "id": "scene05",
+      "file": "05-large_hop.apng",
+      "label": "大きく羽ばたいて跳ねる",
+      "frameCount": 26,
+      "durationMs": 2600,
+      "frameDurationsMs": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "sourceStartFrame": 75,
+      "sourceEndFrameExclusive": 101,
+      "allowedActivities": [
+        "eating",
+        "resting",
+        "cheering"
+      ],
+      "entryPose": "neutral_standing",
+      "exitPose": "neutral_standing",
+      "allowedNextSceneIds": [
+        "scene01",
+        "scene02",
+        "scene03",
+        "scene04"
+      ]
+    }
+  ]
+}
