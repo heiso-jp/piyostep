@@ -147,4 +147,19 @@ final class MealScenePlaybackTests: XCTestCase {
         XCTAssertNotEqual(playback.currentScene?.id, first.id)
         XCTAssertEqual(playback.completedSceneCount, 1)
     }
+
+    func testActivityChangeCutsTheRepeatShort() {
+        let scenes = [scene("eat", activities: ["eating"]), scene("rest", activities: ["resting"])]
+        let playback = MealScenePlayback(
+            selector: MealSceneSelector(scenes: scenes, random: SeededRandomSource(seed: 7)),
+            activity: .eating,
+            playsPerScene: 3
+        )
+        XCTAssertEqual(playback.currentScene?.id, "eat")
+        playback.advance(by: 1.0)
+        playback.request(.resting)
+        // 食べる動きの 1 回目が終わったところで、休む動きに変わる
+        playback.advance(by: 1.0)
+        XCTAssertEqual(playback.currentScene?.id, "rest")
+    }
 }

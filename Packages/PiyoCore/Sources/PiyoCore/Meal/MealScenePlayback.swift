@@ -208,7 +208,9 @@ public final class MealScenePlayback {
             elapsed = max(0, elapsed - scene.duration)
             playsOfCurrentScene += 1
             // 決めた回数に届くまでは、同じ動きを頭からもう一度流す。
-            if playsOfCurrentScene < playsPerScene { continue }
+            // ただし「食べる → 休む」のように様子が変わったら、くり返しを打ち切ってすぐ切り替える。
+            if playsOfCurrentScene < playsPerScene,
+               scene.allowedActivities.contains(requestedActivity.rawValue) { continue }
             playsOfCurrentScene = 0
             completedSceneCount += 1
             currentScene = selector.next(for: requestedActivity)

@@ -38,9 +38,7 @@
       "sourceStartFrame": 0,
       "sourceEndFrameExclusive": 20,
       "allowedActivities": [
-        "eating",
-        "resting",
-        "cheering"
+        "eating"
       ],
       "entryPose": "neutral_standing",
       "exitPose": "neutral_standing",
@@ -82,8 +80,6 @@
       "sourceStartFrame": 20,
       "sourceEndFrameExclusive": 40,
       "allowedActivities": [
-        "eating",
-        "resting",
         "cheering"
       ],
       "entryPose": "neutral_standing",
@@ -126,8 +122,6 @@
       "sourceStartFrame": 40,
       "sourceEndFrameExclusive": 60,
       "allowedActivities": [
-        "eating",
-        "resting",
         "cheering"
       ],
       "entryPose": "neutral_standing",
@@ -165,9 +159,7 @@
       "sourceStartFrame": 60,
       "sourceEndFrameExclusive": 75,
       "allowedActivities": [
-        "eating",
-        "resting",
-        "cheering"
+        "resting"
       ],
       "entryPose": "neutral_standing",
       "exitPose": "neutral_standing",
@@ -215,8 +207,6 @@
       "sourceStartFrame": 75,
       "sourceEndFrameExclusive": 101,
       "allowedActivities": [
-        "eating",
-        "resting",
         "cheering"
       ],
       "entryPose": "neutral_standing",
