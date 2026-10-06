@@ -232,18 +232,18 @@ struct MealRaceView: View {
                 fallbackMood: model.characterMood
             )
 
-            // ごはん（茶碗）。キャラクターの左手前、敷物の上に置く（右下は「たべおわった！」が来る）。
+            // ごはん。キャラクターの左手前、敷物の上に置く（右下は「たべおわった！」が来る）。
             // 絵の下端は画面の外に切れることがあるので、お皿が収まる高さまで持ち上げる。
             GeometryReader { proxy in
                 let plateWidth = min(MealStageGeometry.sceneWidth(in: proxy.size) * 0.17,
                                      proxy.size.height * 0.4)
                 let anchor = MealStageGeometry.point(x: 0.33, y: 0.84, in: proxy.size)
-                RiceBowlView(
+                PlateView(
                     fullness: model.characterPlateFullness,
                     size: plateWidth,
                     foodName: model.character.favoriteFood
                 )
-                .position(x: anchor.x, y: min(anchor.y, proxy.size.height - plateWidth * 0.39 - 16))
+                .position(x: anchor.x, y: min(anchor.y, proxy.size.height - plateWidth * 0.35 - 16))
             }
             .ignoresSafeArea()
 
