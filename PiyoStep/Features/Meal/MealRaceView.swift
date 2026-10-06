@@ -236,13 +236,23 @@ struct MealRaceView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier(A11yID.mealBite)
             } else {
-                VStack(spacing: 6) {
-                    CharacterArtView(character: model.character, mood: model.characterMood, size: CGFloat(layout.artSized(86)))
-                    PlateView(
-                        fullness: fullness,
-                        size: CGFloat(layout.artSized(120)),
-                        foodName: model.character.favoriteFood
-                    )
+                MealSceneView(
+                    character: model.character,
+                    activity: model.snapshot.characterActivity,
+                    isPlaying: model.stage == .racing,
+                    reduceAnimations: environment.launchArguments.reduceAnimations,
+                    seed: model.engine.configuration.seed
+                ) { animate in
+                    VStack(spacing: 6) {
+                        CharacterArtView(character: model.character, mood: model.characterMood,
+                                         size: CGFloat(layout.artSized(86)), isAnimated: animate)
+                            .id(animate)
+                        PlateView(
+                            fullness: fullness,
+                            size: CGFloat(layout.artSized(120)),
+                            foodName: model.character.favoriteFood
+                        )
+                    }
                 }
             }
         }
