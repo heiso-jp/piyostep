@@ -45,9 +45,11 @@ struct PlateView: View {
                             endPoint: .bottom
                         )
                     )
+                    // 残りの量にそのまま比例して縮める。平方根で縮めると減り始めがほとんど見えず、
+                    // 長い時間の設定だと「ぜんぜん減っていない」ように見える。
                     .frame(
-                        width: size * 0.62 * clampedFullness.squareRoot(),
-                        height: size * 0.38 * clampedFullness.squareRoot()
+                        width: size * 0.62 * clampedFullness,
+                        height: size * 0.38 * clampedFullness
                     )
                     .offset(y: -size * 0.02)
                     .animation(.easeInOut(duration: 0.5), value: clampedFullness)

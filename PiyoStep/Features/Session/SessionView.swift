@@ -59,12 +59,37 @@ struct SessionView: View {
         } else {
             VStack(spacing: 14) {
                 header(model)
-                if layout.usesSideBySideAnswer {
+                if layout.usesSideBySideAnswer, model.answerMode == .trace || model.answerMode == .dragHands {
+                    // 書く問題・針を動かす問題は、指で触る欄に画面の半分くらいを使う。
+                    // 高さいっぱいの正方形にして、ボタンはその横に置く。
+                    // スクロールの中に置くと、子どもの指が縦にぶれただけでスクロールに取られる。
+                    GeometryReader { proxy in
+                        let side = max(160, min(proxy.size.height, proxy.size.width * 0.5))
+                        HStack(alignment: .center, spacing: CGFloat(layout.spacing)) {
+                            ScrollView { questionArea(model).padding(.vertical, 4) }
+                                .scrollDisabled(model.isTouchingCanvas)
+                            Group {
+                                if model.answerMode == .trace {
+                                    TracePanel(model: model, canvasSide: side, placesButtonsBeside: true)
+                                } else {
+                                    ClockDragPanel(model: model, clockSide: side, placesButtonsBeside: true)
+                                }
+                            }
+                            .disabled(model.stage == .feedback)
+                            .opacity(model.stage == .feedback ? 0.4 : 1)
+                        }
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                    }
+                    .padding(.horizontal, CGFloat(layout.spacing))
+                    .padding(.bottom, 16)
+                } else if layout.usesSideBySideAnswer {
                     // 横向きは出題を左、回答を右に置く。縦に積むと、
                     // 高さ 390pt の iPhone 横持ちで回答ボタンが画面の外に出る。
                     HStack(alignment: .top, spacing: CGFloat(layout.spacing)) {
                         ScrollView { questionArea(model).padding(.vertical, 4) }
+                            .scrollDisabled(model.isTouchingCanvas)
                         ScrollView { answerArea(model).padding(.vertical, 4) }
+                            .scrollDisabled(model.isTouchingCanvas)
                     }
                     .padding(.horizontal, CGFloat(layout.spacing))
                     .padding(.bottom, 16)
@@ -79,6 +104,7 @@ struct SessionView: View {
                         .padding(.bottom, 28)
                         .piyoContentWidth(layout)
                     }
+                    .scrollDisabled(model.isTouchingCanvas)
                 }
             }
             .overlay(alignment: .bottom) {

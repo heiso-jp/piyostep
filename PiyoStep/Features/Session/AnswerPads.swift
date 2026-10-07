@@ -249,22 +249,67 @@ struct TimePadView: View {
 struct ClockDragPanel: View {
     @Bindable var model: SessionViewModel
     @Environment(\.piyoLayout) private var layout
+    /// 時計の直径。指定が無ければ画面の形からの既定値。
+    var clockSide: CGFloat?
+    /// 「できた！」を時計の横に置くか（横向きで、高さを時計に使い切るとき）。
+    var placesButtonsBeside = false
+
+    private var minuteStep: Int {
+        if case let .clockSet(_, _, step) = model.currentQuestion?.content { return step }
+        return 5
+    }
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("いま \(model.draggedTime.displayJapanese)")
-                .piyoFont(.headline)
-                .foregroundStyle(PiyoTheme.textSoft)
-
-            BigButton(color: PiyoTheme.success, action: { model.submitDraggedTime() }) {
-                HStack(spacing: 10) {
-                    Image(systemName: "checkmark.circle.fill")
-                    Text("できた！")
-                        .piyoFont(.headline)
+        if placesButtonsBeside {
+            HStack(alignment: .center, spacing: 16) {
+                clock
+                VStack(spacing: 12) {
+                    currentTimeLabel
+                    submitButton
                 }
+                .frame(width: TracePanel.besideButtonsWidth + 24)
             }
-            .accessibilityIdentifier(A11yID.sessionClockSubmit)
+        } else {
+            VStack(spacing: 16) {
+                clock
+                currentTimeLabel
+                submitButton
+            }
         }
+    }
+
+    private var clock: some View {
+        AnalogClockView(
+            time: model.draggedTime,
+            isInteractive: true,
+            minuteStep: minuteStep,
+            size: clockSide ?? CGFloat(layout.artSized(260)),
+            onChange: { model.draggedTime = $0 },
+            onStep: { model.clockHandStepped() },
+            onTouchingChange: { model.isTouchingCanvas = $0 }
+        )
+    }
+
+    private var currentTimeLabel: some View {
+        Text("いま \(model.draggedTime.displayJapanese)")
+            .piyoFont(.headline)
+            .foregroundStyle(PiyoTheme.textSoft)
+            .minimumScaleFactor(0.6)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
+    }
+
+    private var submitButton: some View {
+        BigButton(color: PiyoTheme.success, action: { model.submitDraggedTime() }) {
+            HStack(spacing: 10) {
+                Image(systemName: "checkmark.circle.fill")
+                Text("できた！")
+                    .piyoFont(.headline)
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
+            }
+        }
+        .accessibilityIdentifier(A11yID.sessionClockSubmit)
     }
 }
 
@@ -288,43 +333,75 @@ struct TracePanel: View {
         }
     }
 
+    /// 書く欄の一辺。指定が無ければ画面の形からの既定値。
+    var canvasSide: CGFloat?
+    /// 「けす」「できた！」を書く欄の横に置くか（横向きで、高さを書く欄に使い切るとき）。
+    var placesButtonsBeside = false
+
     var body: some View {
-        VStack(spacing: 14) {
-            TraceCanvasView(
-                character: templateText,
-                showsTemplate: showsTemplate,
-                canvasSize: CGFloat(layout.artSized(280)),
-                strokes: $model.traceStrokes
-            )
-
-            HStack(spacing: 12) {
-                Button {
-                    model.traceStrokes = []
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.counterclockwise")
-                        Text("けす")
-                            .piyoFont(.body)
-                    }
-                    .foregroundStyle(PiyoTheme.textSoft)
-                    .frame(maxWidth: .infinity, minHeight: CGFloat(layout.sized(72)))
-                    .background(RoundedRectangle(cornerRadius: 18).fill(PiyoTheme.surfaceSunken))
+        if placesButtonsBeside {
+            HStack(alignment: .center, spacing: 12) {
+                canvas
+                VStack(spacing: 12) {
+                    clearButton
+                    submitButton
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier(A11yID.sessionTraceClear)
-
-                BigButton(
-                    color: PiyoTheme.success,
-                    minHeight: CGFloat(layout.sized(72)),
-                    isEnabled: !model.traceStrokes.isEmpty,
-                    action: { model.submitTrace() }
-                ) {
-                    Text("できた！")
-                        .piyoFont(.headline)
+                .frame(width: TracePanel.besideButtonsWidth)
+            }
+        } else {
+            VStack(spacing: 14) {
+                canvas
+                HStack(spacing: 12) {
+                    clearButton
+                    submitButton
                 }
-                .accessibilityIdentifier(A11yID.sessionTraceSubmit)
             }
         }
+    }
+
+    /// 横に置くときのボタンの幅。
+    static let besideButtonsWidth: CGFloat = 132
+
+    private var canvas: some View {
+        TraceCanvasView(
+            character: templateText,
+            showsTemplate: showsTemplate,
+            canvasSize: canvasSide ?? CGFloat(layout.artSized(280)),
+            strokes: $model.traceStrokes,
+            onTouchingChange: { model.isTouchingCanvas = $0 }
+        )
+    }
+
+    private var clearButton: some View {
+        Button {
+            model.traceStrokes = []
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.counterclockwise")
+                Text("けす")
+                    .piyoFont(.body)
+            }
+            .foregroundStyle(PiyoTheme.textSoft)
+            .frame(maxWidth: .infinity, minHeight: CGFloat(layout.sized(72)))
+            .background(RoundedRectangle(cornerRadius: 18).fill(PiyoTheme.surfaceSunken))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(A11yID.sessionTraceClear)
+    }
+
+    private var submitButton: some View {
+        BigButton(
+            color: PiyoTheme.success,
+            minHeight: CGFloat(layout.sized(72)),
+            isEnabled: !model.traceStrokes.isEmpty,
+            action: { model.submitTrace() }
+        ) {
+            Text("できた！")
+                .piyoFont(.headline)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+        }
+        .accessibilityIdentifier(A11yID.sessionTraceSubmit)
     }
 }
 

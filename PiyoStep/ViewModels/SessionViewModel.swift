@@ -47,6 +47,9 @@ final class SessionViewModel {
     var draggedTime: ClockTime = ClockTime(hour: 12, minute: 0)
     /// なぞり書き
     var traceStrokes: [[TracePoint]] = []
+    /// 針やなぞり書きを指で触っている最中か。触っている間は画面をスクロールさせない。
+    /// そうしないと、子どもの指が少し縦にぶれただけでスクロールに取られて、針も線も動かない。
+    var isTouchingCanvas = false
     /// 数えるときのタップ印
     var countedIndices: Set<Int> = []
 
@@ -211,6 +214,12 @@ final class SessionViewModel {
         guard let hour = Int(hourInput.isEmpty ? "0" : hourInput) else { return }
         let minute = Int(minuteInput.isEmpty ? "0" : minuteInput) ?? 0
         submit(.time(ClockTime(hour: hour, minute: minute)))
+    }
+
+    /// 針が 1 目盛り動いたときの手ごたえ。カチッという音と軽い振動で「動いた」を伝える。
+    func clockHandStepped() {
+        environment.haptics.softNudge()
+        environment.play(.tap)
     }
 
     func submitDraggedTime() {

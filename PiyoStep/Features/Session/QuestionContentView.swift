@@ -22,7 +22,8 @@ struct QuestionContentView: View {
         case .clockRead(let time):
             AnalogClockView(time: time, isInteractive: false, size: art(250))
 
-        case .clockSet(let target, _, let step):
+        case .clockSet(let target, _, _):
+            // 動かす時計は答えの側（ClockDragPanel）に大きく出す。ここでは合わせる時刻だけ見せる。
             VStack(spacing: 14) {
                 Text(target.displayJapanese)
                     .piyoFont(.giant)
@@ -32,13 +33,6 @@ struct QuestionContentView: View {
                 Text("はりを うごかしてね")
                     .piyoFont(.caption)
                     .foregroundStyle(PiyoTheme.textSoft)
-                AnalogClockView(
-                    time: model.draggedTime,
-                    isInteractive: true,
-                    minuteStep: step,
-                    size: art(260),
-                    onChange: { model.draggedTime = $0 }
-                )
             }
 
         case .countObjects(let kind, let count):
